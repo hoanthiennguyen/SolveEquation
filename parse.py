@@ -66,7 +66,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(get_coefficient_and_degree("20x"), (20, 1))
         self.assertEqual(get_coefficient_and_degree("1.2x"), (1.2, 1))
         self.assertEqual(get_coefficient_and_degree("x2"), (1, 2))
-        self.assertEqual(get_coefficient_and_degree("-3/5x2"), (-3 / 5, 2))
+        self.assertEqual(get_coefficient_and_degree("-30x^2"), (-30, 2))
 
     def test_get_next_monomial(self):
         self.assertEqual(get_next_monomial("1", 0), "1")

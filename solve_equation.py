@@ -59,7 +59,6 @@ def solve_quadratic_equation(a, b, c):
             return Root.NoRoot, ()
 
 
-
 class Tests(unittest.TestCase):
 
     def test_equation_type(self):
