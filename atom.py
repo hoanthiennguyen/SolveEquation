@@ -20,14 +20,8 @@ class Atom:
     def simple_validate(expression):
         if len(expression) == 0:
             return False
-        if expression.find("+") > 0 or expression.find("-") > 0:
-            return False
         if expression.find("*") >= 0 or expression.find("/") >= 0:
             return False
-        index_of_x = expression.find("x")
-        if index_of_x >= 0:
-            if expression.find("x", index_of_x + 1) >= 0:
-                return False
         return True
 
     @staticmethod
@@ -39,9 +33,27 @@ class Atom:
         return True
 
     @staticmethod
+    def find_sign(expression):
+        sign = 1
+        offset = 0
+        while offset < len(expression):
+            if expression[offset] == "+":
+                sign = sign
+            elif expression[offset] == "-":
+                sign = -sign
+            else:
+                break
+            offset = offset + 1
+        return sign, offset
+
+    @staticmethod
     def parse(expression):
         if not Atom.simple_validate(expression):
             raise ParseException("Invalid atom: " + expression)
+
+        sign, offset = Atom.find_sign(expression)
+        expression = expression[offset:]
+
         try:
             index_of_x = expression.find('x')
             if index_of_x < 0:
@@ -51,24 +63,21 @@ class Atom:
                 if index_of_x == 0:
                     coefficient = 1
                 else:
-                    coefficient = expression[0:index_of_x]
-                    if coefficient == "-":
-                        coefficient = -1
-                    elif coefficient == "+":
-                        coefficient = 1
-                    else:
-                        coefficient = float(expression[0:index_of_x])
+                    coefficient = float(expression[0:index_of_x])
+
                 if index_of_x == len(expression) - 1:
                     degree = 1
                 else:
                     if expression[index_of_x + 1] == '^':
                         degree = int(expression[index_of_x + 2:])
+                        if degree < 0:
+                            raise ParseException("Degree cannot be negative")
                     else:
                         raise ParseException("Invalid atom: " + expression)
 
-        except (SyntaxError, NameError, ValueError):
+        except ValueError:
             raise ParseException("Invalid atom: " + expression)
-        return Atom(coefficient, degree)
+        return Atom(sign * coefficient, degree)
 
     def multiply(self, other):
         if not isinstance(other, Atom):
@@ -125,6 +134,16 @@ class Tests(unittest.TestCase):
         self.assertEqual(Atom.validate("2x^2.1"), False)
         self.assertEqual(Atom.validate("2a^2"), False)
         self.assertEqual(Atom.validate("2xa^2"), False)
+        self.assertEqual(Atom.validate("+2+2"), False)
+        self.assertEqual(Atom.validate("++2"), True)
+        self.assertEqual(Atom.validate("-+2"), True)
+        self.assertEqual(Atom.validate("-+2x"), True)
+        self.assertEqual(Atom.validate("-+20x^2"), True)
+        self.assertEqual(Atom.validate("-+20x^-2"), False)
+        self.assertEqual(Atom.parse("-+20x^2"), Atom(-20, 2))
+        self.assertEqual(Atom.parse("+-20x^2"), Atom(-20, 2))
+        self.assertEqual(Atom.parse("--20x^2"), Atom(20, 2))
+        self.assertEqual(Atom.parse("++20x^2"), Atom(20, 2))
 
 
 if __name__ == '__main__':
