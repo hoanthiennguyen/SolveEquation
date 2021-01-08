@@ -22,6 +22,12 @@ class Monomial:
         else:
             return False
 
+    def __str__(self):
+        return "{}, {}".format(self.coefficient, self.degree)
+
+    def __repr__(self):
+        return self.__str__()
+
     @staticmethod
     def parse(expression):
         atom0_str = get_next_atom(expression, 0)

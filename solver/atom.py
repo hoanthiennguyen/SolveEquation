@@ -16,6 +16,12 @@ class Atom:
         else:
             return False
 
+    def __str__(self):
+        return "{}, {}".format(self.coefficient, self.degree)
+
+    def __repr__(self):
+        return self.__str__()
+
     @staticmethod
     def simple_validate(expression):
         if len(expression) == 0:
