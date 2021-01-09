@@ -20,7 +20,7 @@ class Polynomial:
 
     def __eq__(self, other):
         if isinstance(other, Polynomial):
-            return self.dictionary == other.dictionary
+            return self.simplify().dictionary == other.simplify().dictionary
         else:
             return False
 
@@ -41,7 +41,7 @@ class Polynomial:
         for degree in other.dictionary:
             self.dictionary[degree] = self.dictionary.get(degree, 0) + other.dictionary[degree]
 
-        return self
+        return self.simplify()
 
     def minus(self, other):
         if not isinstance(other, Polynomial):
@@ -50,7 +50,17 @@ class Polynomial:
         for degree in other.dictionary:
             self.dictionary[degree] = self.dictionary.get(degree, 0) - other.dictionary[degree]
 
-        return self
+        return self.simplify()
+
+    def multiply(self, other):
+        if not isinstance(other, Polynomial):
+            raise TypeError("Parameter is not a Polynomial")
+        result = {}
+        for d1 in self.dictionary:
+            for d2 in other.dictionary:
+                result[d1 + d2] = result.get(d1+d2, 0) + self.dictionary.get(d1) * other.dictionary.get(d2)
+
+        return Polynomial(result).simplify()
 
     @staticmethod
     def parse(expression):
@@ -64,7 +74,18 @@ class Polynomial:
             dictionary[degree] = dictionary.get(degree, 0) + coefficient
             index = index + len(monomial_str)
 
-        return Polynomial(dictionary)
+        return Polynomial(dictionary).simplify()
+    
+    def simplify(self):
+        zero_coefficient = []
+        for degree in self.dictionary:
+            if self.dictionary[degree] == 0:
+                zero_coefficient.append(degree)
+        
+        for degree in zero_coefficient:
+            self.dictionary.pop(degree)
+
+        return self
 
 
 class Tests(unittest.TestCase):
@@ -83,11 +104,31 @@ class Tests(unittest.TestCase):
 
     def test_plus(self):
         self.assertEqual(Polynomial.parse("2x-3").plus(Polynomial.parse("3x+5")), Polynomial.parse("5x+2"))
+        self.assertEqual(Polynomial.parse("2x+1").plus(Polynomial.parse("0")), Polynomial.parse("2x+1"))
+        self.assertEqual(Polynomial.parse("0").plus(Polynomial.parse("2x+1")), Polynomial.parse("2x+1"))
+        self.assertEqual(Polynomial.parse("0").plus(Polynomial.parse("0")), Polynomial.parse("0"))
         self.assertEqual(Polynomial.parse("-2x-3").plus(Polynomial.parse("3x+5-x^2")), Polynomial.parse("x+2-x^2"))
 
     def test_minus(self):
+        self.assertEqual(Polynomial.parse("2x+1").minus(Polynomial.parse("0")), Polynomial.parse("2x+1"))
+        self.assertEqual(Polynomial.parse("0").minus(Polynomial.parse("2x+1")), Polynomial.parse("-2x-1"))
+        self.assertEqual(Polynomial.parse("0").minus(Polynomial.parse("0")), Polynomial.parse("0"))
         self.assertEqual(Polynomial.parse("2x-3").minus(Polynomial.parse("3x+5")), Polynomial.parse("-x-8"))
         self.assertEqual(Polynomial.parse("-2x-3").minus(Polynomial.parse("3x+5-x^2")), Polynomial.parse("x^2-5x-8"))
+
+    def test_multiply(self):
+        self.assertEqual(Polynomial.parse("2").multiply(Polynomial.parse("3")), Polynomial.parse("6"))
+        self.assertEqual(Polynomial.parse("-2").multiply(Polynomial.parse("3")), Polynomial.parse("-6"))
+        self.assertEqual(Polynomial.parse("2").multiply(Polynomial.parse("-3")), Polynomial.parse("-6"))
+        self.assertEqual(Polynomial.parse("-2").multiply(Polynomial.parse("-3")), Polynomial.parse("6"))
+        self.assertEqual(Polynomial.parse("2").multiply(Polynomial.parse("x")), Polynomial.parse("2x"))
+        self.assertEqual(Polynomial.parse("-2").multiply(Polynomial.parse("x")), Polynomial.parse("-2x"))
+        self.assertEqual(Polynomial.parse("2").multiply(Polynomial.parse("-x")), Polynomial.parse("-2x"))
+        self.assertEqual(Polynomial.parse("-2").multiply(Polynomial.parse("-x")), Polynomial.parse("2x"))
+        self.assertEqual(Polynomial.parse("x").multiply(Polynomial.parse("x+1")), Polynomial.parse("x^2+x"))
+        self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("x+2")), Polynomial.parse("x^2+3x+2"))
+        self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("x-1")), Polynomial.parse("x^2-1"))
+        self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("-x-1")), Polynomial.parse("-x^2-1-2x"))
 
 
 if __name__ == '__main__':
