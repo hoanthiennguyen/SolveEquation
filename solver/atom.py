@@ -70,6 +70,7 @@ class Atom:
                     coefficient = 1
                 else:
                     coefficient = float(expression[0:index_of_x])
+                    # TODO: handle the case when coefficient contains `^`
 
                 if index_of_x == len(expression) - 1:
                     degree = 1
