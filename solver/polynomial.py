@@ -87,6 +87,18 @@ class Polynomial:
 
         return self
 
+    def get_full_coefficient(self):
+        coefficients = []
+        max_degree = 0
+        for degree in self.dictionary:
+            if degree > max_degree:
+                max_degree = degree
+
+        for degree in reversed(range(0, max_degree + 1)):
+            coefficients.append(self.dictionary.get(degree, 0))
+
+        return coefficients
+
 
 class Tests(unittest.TestCase):
 
@@ -101,6 +113,9 @@ class Tests(unittest.TestCase):
         self.assertEqual(Polynomial.parse("-x+3x^2+1"), Polynomial({2: 3, 1: -1, 0: 1}))
         self.assertEqual(Polynomial.parse("3x^2-x+1"), Polynomial({2: 3, 1: -1, 0: 1}))
         self.assertEqual(Polynomial.parse("3x^2-x+1+9x-3"), Polynomial({2: 3, 1: 8, 0: -2}))
+
+    def test_get_full_coefficient(self):
+        self.assertEqual(Polynomial.parse("x^2-1").get_full_coefficient(), [1, 0, -1])
 
     def test_plus(self):
         self.assertEqual(Polynomial.parse("2x-3").plus(Polynomial.parse("3x+5")), Polynomial.parse("5x+2"))
