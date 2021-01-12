@@ -108,6 +108,11 @@ class Polynomial:
         return Polynomial(result)
 
     def eval(self, x):
+        if x == float('inf'):
+            return self.get_lim_at_inf()
+        if x == float('-inf'):
+            return self.get_lim_at_minus_inf()
+        
         result = 0
         for degree, coefficient in self.dictionary.items():
             result += coefficient * x ** degree
@@ -121,7 +126,27 @@ class Polynomial:
                 max_degree = degree
 
         return max_degree
+    
+    def get_lim_at_inf(self):
+        highest_degree = self.get_highest_degree()
+        if self.dictionary[highest_degree] > 0:
+            return float('inf')
+        else:
+            return float('-inf')
 
+    def get_lim_at_minus_inf(self):
+        highest_degree = self.get_highest_degree()
+        if highest_degree % 2 == 0:
+            if self.dictionary[highest_degree] > 0:
+                return float('inf')
+            else:
+                return float('-inf')
+        else:
+            if self.dictionary[highest_degree] > 0:
+                return float('-inf')
+            else:
+                return float('inf')
+            
 
 class Tests(unittest.TestCase):
 
@@ -141,6 +166,9 @@ class Tests(unittest.TestCase):
 
     def test_get_full_coefficient(self):
         self.assertEqual(Polynomial.parse("x^2-1").get_full_coefficient(), [1, 0, -1])
+        self.assertEqual(Polynomial.parse("x^2-2x-1").get_full_coefficient(), [1, -2, -1])
+        self.assertEqual(Polynomial.parse("x^2-2x").get_full_coefficient(), [1, -2, 0])
+        self.assertEqual(Polynomial.parse("x^2").get_full_coefficient(), [1, 0, 0])
 
     def test_plus(self):
         self.assertEqual(Polynomial.parse("2x-3").plus(Polynomial.parse("3x+5")), Polynomial.parse("5x+2"))
@@ -183,6 +211,22 @@ class Tests(unittest.TestCase):
         self.assertEqual(Polynomial.parse("2x+10").eval(10), 30)
         self.assertEqual(Polynomial.parse("2.5x+10").eval(10), 35)
         self.assertEqual(Polynomial.parse("x^2+2x+1").eval(3), 16)
+        self.assertEqual(Polynomial.parse("3x^4+8x^3-6x^2-24x").eval(float('inf')), float('inf'))
+        self.assertEqual(Polynomial.parse("3x^4+8x^3-6x^2-24x").eval(float('-inf')), float('inf'))
+
+    def test_lim_at_inf(self):
+        self.assertEqual(Polynomial.parse("3x^4+8x^3-6x^2-24x").get_lim_at_inf(), float('inf'))
+        self.assertEqual(Polynomial.parse("-3x^4+8x^3-6x^2-24x").get_lim_at_inf(), float('-inf'))
+
+        self.assertEqual(Polynomial.parse("3x^3-6x^2-24x").get_lim_at_inf(), float('inf'))
+        self.assertEqual(Polynomial.parse("-3x^3-6x^2-24x").get_lim_at_inf(), float('-inf'))
+
+    def test_lim_at_minus_inf(self):
+        self.assertEqual(Polynomial.parse("3x^4+8x^3-6x^2-24x").get_lim_at_minus_inf(), float('inf'))
+        self.assertEqual(Polynomial.parse("-3x^4+8x^3-6x^2-24x").get_lim_at_minus_inf(), float('-inf'))
+
+        self.assertEqual(Polynomial.parse("3x^3-6x^2-24x").get_lim_at_minus_inf(), float('-inf'))
+        self.assertEqual(Polynomial.parse("-3x^3-6x^2-24x").get_lim_at_minus_inf(), float('inf'))
 
 
 if __name__ == '__main__':
