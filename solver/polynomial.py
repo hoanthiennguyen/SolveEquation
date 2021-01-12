@@ -6,9 +6,9 @@ from monomial import Monomial
 def get_next_monomial(expression, start):
     for i in range(start + 1, len(expression)):
         if (expression[i] == "+" or expression[i] == "-") \
-                and expression[i-1] != "*" and expression[i-1] != "/" \
-                and expression[i-1] != "+" and expression[i-1] != "-"\
-                and expression[i-1] != "^":
+                and expression[i - 1] != "*" and expression[i - 1] != "/" \
+                and expression[i - 1] != "+" and expression[i - 1] != "-" \
+                and expression[i - 1] != "^":
             return expression[start:i]
 
     return expression[start:]
@@ -20,7 +20,7 @@ class Polynomial:
 
     def __eq__(self, other):
         if isinstance(other, Polynomial):
-            return self.simplify().dictionary == other.simplify().dictionary
+            return self.dictionary == other.dictionary
         else:
             return False
 
@@ -58,7 +58,7 @@ class Polynomial:
         result = {}
         for d1 in self.dictionary:
             for d2 in other.dictionary:
-                result[d1 + d2] = result.get(d1+d2, 0) + self.dictionary.get(d1) * other.dictionary.get(d2)
+                result[d1 + d2] = result.get(d1 + d2, 0) + self.dictionary.get(d1) * other.dictionary.get(d2)
 
         return Polynomial(result).simplify()
 
@@ -99,6 +99,29 @@ class Polynomial:
 
         return coefficients
 
+    def derivative(self):
+        result = {}
+        for degree, coefficient in self.dictionary.items():
+            if degree >= 1:
+                result[degree - 1] = coefficient * degree
+
+        return Polynomial(result)
+
+    def eval(self, x):
+        result = 0
+        for degree, coefficient in self.dictionary.items():
+            result += coefficient * x ** degree
+
+        return result
+
+    def get_highest_degree(self):
+        max_degree = 0
+        for degree in self.dictionary:
+            if degree > max_degree:
+                max_degree = degree
+
+        return max_degree
+
 
 class Tests(unittest.TestCase):
 
@@ -106,9 +129,11 @@ class Tests(unittest.TestCase):
         self.assertEqual(Polynomial.parse("1"), Polynomial({0: 1}))
         self.assertEqual(Polynomial.parse("x"), Polynomial({1: 1}))
         self.assertEqual(Polynomial.parse("-x"), Polynomial({1: -1}))
-        self.assertEqual(Polynomial.parse("x-x"), Polynomial({1: 0}))
+        self.assertEqual(Polynomial.parse("x-x"), Polynomial({}))
         self.assertEqual(Polynomial.parse("20x"), Polynomial({1: 20}))
         self.assertEqual(Polynomial.parse("3*20x"), Polynomial({1: 60}))
+        self.assertEqual(Polynomial.parse("1/3*x^3-x"), Polynomial({3: 1 / 3, 1: -1}))
+        self.assertEqual(Polynomial.parse("x^3/3-x"), Polynomial({3: 1 / 3, 1: -1}))
         self.assertEqual(Polynomial.parse("3*2x+-5x"), Polynomial({1: 1}))
         self.assertEqual(Polynomial.parse("-x+3x^2+1"), Polynomial({2: 3, 1: -1, 0: 1}))
         self.assertEqual(Polynomial.parse("3x^2-x+1"), Polynomial({2: 3, 1: -1, 0: 1}))
@@ -144,6 +169,20 @@ class Tests(unittest.TestCase):
         self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("x+2")), Polynomial.parse("x^2+3x+2"))
         self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("x-1")), Polynomial.parse("x^2-1"))
         self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("-x-1")), Polynomial.parse("-x^2-1-2x"))
+        self.assertEqual(Polynomial.parse("0").multiply(Polynomial.parse("-x-1")), Polynomial.parse("0"))
+        self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("0")), Polynomial.parse("0"))
+
+    def test_diff(self):
+        self.assertEqual(Polynomial.parse("10").derivative(), Polynomial.parse("0"))
+        self.assertEqual(Polynomial.parse("x+1").derivative(), Polynomial.parse("1"))
+        self.assertEqual(Polynomial.parse("2x^2+3x+1").derivative(), Polynomial.parse("4x+3"))
+
+    def test_eval(self):
+        self.assertEqual(Polynomial.parse("0").eval(10), 0)
+        self.assertEqual(Polynomial.parse("x").eval(10), 10)
+        self.assertEqual(Polynomial.parse("2x+10").eval(10), 30)
+        self.assertEqual(Polynomial.parse("2.5x+10").eval(10), 35)
+        self.assertEqual(Polynomial.parse("x^2+2x+1").eval(3), 16)
 
 
 if __name__ == '__main__':
