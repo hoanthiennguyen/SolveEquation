@@ -1,6 +1,9 @@
 import unittest
 from enum import Enum
-from math import sqrt
+from math import sqrt, cos
+
+import numpy as np
+
 from parse import parse_to_dictionary
 
 
@@ -33,20 +36,19 @@ def get_equation_type(expression):
         return Equation.Arbitrary
 
 
-def solve_linear_equation(a, b):
+def solve_constant_equation(a):
     if a == 0:
-        if b == 0:
-            return Root.InfiniteRoots, ()
-        else:
-            return Root.NoRoot, ()
+        return Root.InfiniteRoots, ()
     else:
-        return Root.SomeRoots, (- b / a)
+        return Root.NoRoot, ()
+
+
+def solve_linear_equation(a, b):
+
+    return Root.SomeRoots, (- b / a)
 
 
 def solve_quadratic_equation(a, b, c):
-    if a == 0:
-        return solve_linear_equation(b, a)
-
     delta = b ** 2 - 4 * a * c
     if delta > 0:
         x1 = (-b + sqrt(delta)) / (2 * a)
@@ -59,6 +61,31 @@ def solve_quadratic_equation(a, b, c):
             return Root.NoRoot, ()
 
 
+def solve_cubic_equation(a, b, c, d):
+    delta = b**2 - 3*a*c
+    k = (9 * a * b * c - 2 * b ** 3 - 27 * a ** 2 * d) / (2 * sqrt(abs(delta) ** 3))
+    if delta > 0:
+
+        if abs(k) <= 1:
+            x1 = (2 * sqrt(delta)*cos(np.arccos(k) / 3) - b) / (3*a)
+            x2 = (2 * sqrt(delta)*cos(np.arccos(k) / 3 - 2 * np.pi / 3) - b) / (3 * a)
+            x3 = (2 * sqrt(delta)*cos(np.arccos(k) / 3 + 2 * np.pi / 3) - b) / (3 * a)
+            return Root.SomeRoots, (x1, x2, x3)
+        else:
+            x = sqrt(delta)*abs(k)/(3*a*k)*(np.cbrt(abs(k) + sqrt(k**2 - 1)) + np.cbrt(abs(k) - sqrt(k**2 - 1))) \
+                 - b/(3*a)
+            return Root.SomeRoots, (x)
+    elif delta == 0:
+        if b**3 - 27*a**2*d == 0:
+            x = -b/(3*a)
+        else:
+            x = (-b + np.cbrt(b**3 - 27*a**2*d)) / (3*a)
+            return Root.SomeRoots, (x)
+    else:
+        x = sqrt(abs(delta))/(3*a)*(np.cbrt(k + sqrt(k**2 + 1)) + np.cbrt(k - sqrt(k**2 + 1))) - b/(3*a)
+        return Root.SomeRoots, (x)
+
+
 class Tests(unittest.TestCase):
 
     def test_equation_type(self):
@@ -69,4 +96,3 @@ class Tests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
