@@ -79,6 +79,22 @@ def solve_from_derivative_roots(polynomial, epsilon, derivative_roots):
     return roots
 
 
+def solve_equation(polynomial, epsilon):
+    if polynomial.get_highest_degree() == 0:
+        if polynomial.get_coefficient(0) != 0:
+            return None
+        else:
+            return "Infinite roots"
+
+    if polynomial.get_highest_degree() == 1:
+        [a, b] = polynomial.get_full_coefficient()
+        return [-b / a]
+    else:
+        derivative = polynomial.derivative()
+        derivative_roots = solve_equation(derivative, epsilon)
+        return solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
+
+
 class Tests(unittest.TestCase):
 
     def test_get_lower_bound_with_opposite_sign(self):
@@ -122,5 +138,41 @@ class Tests(unittest.TestCase):
         polynomial = Polynomial.parse("x^3-3x^2+2x-10")
         derivative_roots = [0.42, 1.57]
         roots = solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
+        for root in roots:
+            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+
+    def test_solve_equation(self):
+        epsilon = 0.0001
+
+        polynomial = Polynomial.parse("0x+6")
+        root = solve_equation(polynomial, epsilon)
+        self.assertEqual(root, None)
+
+        polynomial = Polynomial.parse("0x+0")
+        root = solve_equation(polynomial, epsilon)
+        self.assertEqual(root, "Infinite roots")
+
+        polynomial = Polynomial.parse("11x+6")
+        roots = solve_equation(polynomial, epsilon)
+        for root in roots:
+            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+
+        polynomial = Polynomial.parse("6x^2+11x+6")
+        roots = solve_equation(polynomial, epsilon)
+        for root in roots:
+            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+
+        polynomial = Polynomial.parse("x^3+6x^2+11x+6")
+        roots = solve_equation(polynomial, epsilon)
+        for root in roots:
+            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+
+        polynomial = Polynomial.parse("x^4-4x^2+20x-7")
+        roots = solve_equation(polynomial, epsilon)
+        for root in roots:
+            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+
+        polynomial = Polynomial.parse("x^2-1").multiply(Polynomial.parse("x^2-4"))
+        roots = solve_equation(polynomial, epsilon)
         for root in roots:
             self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
