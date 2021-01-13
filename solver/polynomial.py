@@ -126,6 +126,9 @@ class Polynomial:
                 max_degree = degree
 
         return max_degree
+
+    def get_coefficient(self, degree):
+        return self.dictionary.get(degree, 0)
     
     def get_lim_at_inf(self):
         highest_degree = self.get_highest_degree()
@@ -227,6 +230,11 @@ class Tests(unittest.TestCase):
 
         self.assertEqual(Polynomial.parse("3x^3-6x^2-24x").get_lim_at_minus_inf(), float('-inf'))
         self.assertEqual(Polynomial.parse("-3x^3-6x^2-24x").get_lim_at_minus_inf(), float('inf'))
+
+    def test_get_coefficient(self):
+        self.assertEqual(Polynomial.parse("-x^2+1").get_coefficient(2), -1)
+        self.assertEqual(Polynomial.parse("-x^2+1").get_coefficient(1), 0)
+        self.assertEqual(Polynomial.parse("-x^2+1").get_coefficient(0), 1)
 
 
 if __name__ == '__main__':
