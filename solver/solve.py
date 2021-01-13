@@ -19,9 +19,9 @@ def find_root_using_bisection(polynomial, epsilon, lower, upper):
 
 
 def find_root(polynomial, epsilon, lower, upper):
-    if polynomial.eval(lower) == 0:
+    if abs(polynomial.eval(lower)) <= epsilon:
         return None
-    if polynomial.eval(upper) == 0:
+    if abs(polynomial.eval(upper)) <= epsilon:
         return upper
     if polynomial.eval(lower) * polynomial.eval(upper) > 0:
         return None
@@ -94,11 +94,11 @@ class Tests(unittest.TestCase):
 
         polynomial = Polynomial.parse("x^3/3-x")
         root = find_root_using_bisection(polynomial, epsilon, 1, 10)
-        self.assertEqual(abs(polynomial.eval(root)) < epsilon, True)
+        self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
 
         polynomial = Polynomial.parse("x^2-x-2")
         root = find_root_using_bisection(polynomial, epsilon, -100, 0)
-        self.assertEqual(abs(polynomial.eval(root)) < epsilon, True)
+        self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
 
         polynomial = Polynomial.parse("x^2-x-2")
         root = find_root_using_bisection(polynomial, epsilon, -100, -10)
@@ -111,16 +111,16 @@ class Tests(unittest.TestCase):
         derivative_roots = []
         roots = solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
         for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) < epsilon, True)
+            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
 
         polynomial = Polynomial.parse("x^2-6x+1")
         derivative_roots = [3]
         roots = solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
         for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) < epsilon, True)
+            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
 
         polynomial = Polynomial.parse("x^3-3x^2+2x-10")
         derivative_roots = [0.42, 1.57]
         roots = solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
         for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) < epsilon, True)
+            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
