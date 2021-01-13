@@ -108,7 +108,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(Atom(2, 3).multiply(Atom(1, 0)), Atom(2, 3))
         self.assertEqual(Atom(2, 3).multiply(Atom(0, 0)), Atom(0, 3))
 
-    def test_parse(self):
+    def test_validate(self):
         self.assertEqual(Atom.validate(""), False)
         self.assertEqual(Atom.validate("1"), True)
         self.assertEqual(Atom.validate("10"), True)
@@ -147,6 +147,8 @@ class Tests(unittest.TestCase):
         self.assertEqual(Atom.validate("-+2x"), True)
         self.assertEqual(Atom.validate("-+20x^2"), True)
         self.assertEqual(Atom.validate("-+20x^-2"), False)
+
+    def test_parse(self):
         self.assertEqual(Atom.parse("-+20x^2"), Atom(-20, 2))
         self.assertEqual(Atom.parse("+-20x^2"), Atom(-20, 2))
         self.assertEqual(Atom.parse("--20x^2"), Atom(20, 2))
