@@ -82,9 +82,9 @@ def solve_from_derivative_roots(polynomial, epsilon, derivative_roots):
 def solve_equation(polynomial, epsilon):
     if polynomial.get_highest_degree() == 0:
         if polynomial.get_coefficient(0) != 0:
-            return None
+            return []
         else:
-            return "Infinite roots"
+            return ["Infinite roots"]
 
     if polynomial.get_highest_degree() == 1:
         [a, b] = polynomial.get_full_coefficient()
@@ -145,12 +145,12 @@ class Tests(unittest.TestCase):
         epsilon = 0.0001
 
         polynomial = Polynomial.parse("0x+6")
-        root = solve_equation(polynomial, epsilon)
-        self.assertEqual(root, None)
+        roots = solve_equation(polynomial, epsilon)
+        self.assertEqual(roots, [])
 
         polynomial = Polynomial.parse("0x+0")
-        root = solve_equation(polynomial, epsilon)
-        self.assertEqual(root, "Infinite roots")
+        roots = solve_equation(polynomial, epsilon)
+        self.assertEqual(roots, ["Infinite roots"])
 
         polynomial = Polynomial.parse("11x+6")
         roots = solve_equation(polynomial, epsilon)
