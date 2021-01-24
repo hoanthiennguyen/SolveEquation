@@ -2,6 +2,8 @@ import unittest
 
 from polynomial import Polynomial
 
+ROUND_UP_TO_N_DIGIT = 3
+
 
 def find_root_using_bisection(polynomial, epsilon, lower, upper):
     if polynomial.eval(lower) * polynomial.eval(upper) > 0:
@@ -15,6 +17,9 @@ def find_root_using_bisection(polynomial, epsilon, lower, upper):
             lower = middle
         middle = (lower + upper) / 2
 
+    middle = round_root(polynomial, middle, ROUND_UP_TO_N_DIGIT)
+    if int(middle) == middle:
+        middle = int(middle)
     return middle
 
 
@@ -93,6 +98,28 @@ def solve_equation(polynomial, epsilon):
         derivative = polynomial.derivative()
         derivative_roots = solve_equation(derivative, epsilon)
         return solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
+
+
+def parse_and_solve(expression, epsilon):
+    if expression.find("=") < 0:
+        return solve_equation(Polynomial.parse(expression), epsilon)
+    else:
+        if expression.endswith("=0"):
+            return solve_equation(Polynomial.parse(expression[0:len(expression)-2]), epsilon)
+        else:
+            index_of_equal = expression.find("=")
+            a = Polynomial.parse(expression[0:index_of_equal])
+            b = Polynomial.parse(expression[index_of_equal+1:])
+            return solve_equation(a.minus(b), epsilon)
+
+
+def round_root(polynomial, raw_root, n_digits):
+    ith = n_digits
+    root = round(raw_root, ith)
+    if abs(polynomial.eval(root)) < abs(polynomial.eval(raw_root)):
+        return root
+    else:
+        return raw_root
 
 
 class Tests(unittest.TestCase):
@@ -176,3 +203,37 @@ class Tests(unittest.TestCase):
         roots = solve_equation(polynomial, epsilon)
         for root in roots:
             self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+            
+    def test_parse_and_solve(self):
+        epsilon = 0.0001
+        
+        expression = "x^2-1"
+        roots = parse_and_solve(expression, epsilon)
+        for root in roots:
+            print(root)
+
+        expression = "x^2-1=0"
+        roots = parse_and_solve(expression, epsilon)
+        for root in roots:
+            print(root)
+
+        expression = "x^2-1=8"
+        roots = parse_and_solve(expression, epsilon)
+        for root in roots:
+            print(root)
+
+        expression = "x^2-1=-2x+2"
+        roots = parse_and_solve(expression, epsilon)
+        for root in roots:
+            print(root)
+
+        expression = "x^2+2.5x+1.5"
+        roots = parse_and_solve(expression, epsilon)
+        for root in roots:
+            print(root)
+
+    def test_round_root(self):
+        p = Polynomial.parse("x-0.9999")
+        raw_root = 0.9999
+        root = round_root(p, raw_root, 3)
+        print(root)
