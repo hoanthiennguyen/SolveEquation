@@ -9,7 +9,7 @@ def find_root_using_bisection(polynomial, epsilon, lower, upper):
         return None
 
     middle = (lower + upper) / 2
-    while abs(upper - lower) > epsilon:
+    while polynomial.eval(middle) != 0 and abs(upper - lower) > epsilon:
         if polynomial.eval(middle) * polynomial.eval(upper) > 0:
             upper = middle
         else:
@@ -22,9 +22,9 @@ def find_root_using_bisection(polynomial, epsilon, lower, upper):
 
 
 def find_root(polynomial, epsilon, lower, upper):
-    if abs(polynomial.eval(lower)) <= epsilon:
+    if polynomial.eval(lower) == 0:
         return None
-    if abs(polynomial.eval(upper)) <= epsilon:
+    if polynomial.eval(upper) == 0:
         return upper
     if polynomial.eval(lower) * polynomial.eval(upper) > 0:
         return None
@@ -138,15 +138,16 @@ class Tests(unittest.TestCase):
         self.assertEqual(get_upper_bound_with_opposite_sign(Polynomial.parse("x^3"), -10), 5)
 
     def test_bisect(self):
-        epsilon = 0.0001
+        epsilon = 0.00001
+        n_digits = convert_from_epsilon_to_n_digit(epsilon)
 
         polynomial = Polynomial.parse("x^3/3-x")
         root = find_root_using_bisection(polynomial, epsilon, 1, 10)
-        self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+        self.assertEqual(round(root, n_digits), 1.7321)
 
         polynomial = Polynomial.parse("x^2-x-2")
         root = find_root_using_bisection(polynomial, epsilon, -100, 0)
-        self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+        self.assertEqual(round(root, n_digits), -1)
 
         polynomial = Polynomial.parse("x^2-x-2")
         root = find_root_using_bisection(polynomial, epsilon, -100, -10)
