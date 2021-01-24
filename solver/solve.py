@@ -1,8 +1,7 @@
 import unittest
 
 from polynomial import Polynomial
-
-ROUND_UP_TO_N_DIGIT = 3
+from util import convert_from_epsilon_to_n_digit
 
 
 def find_root_using_bisection(polynomial, epsilon, lower, upper):
@@ -10,16 +9,15 @@ def find_root_using_bisection(polynomial, epsilon, lower, upper):
         return None
 
     middle = (lower + upper) / 2
-    while abs(polynomial.eval(middle)) > epsilon:
+    while abs(upper - lower) > epsilon:
         if polynomial.eval(middle) * polynomial.eval(upper) > 0:
             upper = middle
         else:
             lower = middle
         middle = (lower + upper) / 2
 
-    middle = round_root(polynomial, middle, ROUND_UP_TO_N_DIGIT)
-    if int(middle) == middle:
-        middle = int(middle)
+    n_digits = convert_from_epsilon_to_n_digit(epsilon)
+    middle = try_round_root(polynomial, middle, n_digits)
     return middle
 
 
@@ -100,24 +98,31 @@ def solve_equation(polynomial, epsilon):
         return solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
 
 
-def parse_and_solve(expression, epsilon):
+def parse_and_solve_and_round(expression, epsilon):
     if expression.find("=") < 0:
-        return solve_equation(Polynomial.parse(expression), epsilon)
+        roots = solve_equation(Polynomial.parse(expression), epsilon)
     else:
         if expression.endswith("=0"):
-            return solve_equation(Polynomial.parse(expression[0:len(expression)-2]), epsilon)
+            roots = solve_equation(Polynomial.parse(expression[0:len(expression)-2]), epsilon)
         else:
             index_of_equal = expression.find("=")
             a = Polynomial.parse(expression[0:index_of_equal])
             b = Polynomial.parse(expression[index_of_equal+1:])
-            return solve_equation(a.minus(b), epsilon)
+            roots = solve_equation(a.minus(b), epsilon)
+
+    if roots == ["Infinite roots"]:
+        return roots
+    n_digits = convert_from_epsilon_to_n_digit(epsilon)
+    return list(map(lambda root: round(root, n_digits), roots))
 
 
-def round_root(polynomial, raw_root, n_digits):
-    ith = n_digits
-    root = round(raw_root, ith)
-    if abs(polynomial.eval(root)) < abs(polynomial.eval(raw_root)):
-        return root
+def try_round_root(polynomial, raw_root, n_digits):
+    root = round(raw_root, n_digits)
+    if abs(polynomial.eval(root)) <= abs(polynomial.eval(raw_root)):
+        if int(root) == root:
+            return int(root)
+        else:
+            return root
     else:
         return raw_root
 
@@ -148,25 +153,29 @@ class Tests(unittest.TestCase):
         self.assertEqual(root, None)
 
     def test_solve_from_derivative_roots(self):
-        epsilon = 0.0001
+        epsilon = 0.00001
+        n_digits = convert_from_epsilon_to_n_digit(epsilon)
 
         polynomial = Polynomial.parse("x^3+x")
         derivative_roots = []
         roots = solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
-        for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+        expected_roots = [0]
+        for index in range(len(roots)):
+            self.assertEqual(round(roots[index], n_digits), expected_roots[index])
 
         polynomial = Polynomial.parse("x^2-6x+1")
         derivative_roots = [3]
         roots = solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
-        for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+        expected_roots = [0.1716, 5.8284]
+        for index in range(len(roots)):
+            self.assertEqual(round(roots[index], n_digits), expected_roots[index])
 
         polynomial = Polynomial.parse("x^3-3x^2+2x-10")
         derivative_roots = [0.42, 1.57]
         roots = solve_from_derivative_roots(polynomial, epsilon, derivative_roots)
-        for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+        expected_roots = [3.3089]
+        for index in range(len(roots)):
+            self.assertEqual(round(roots[index], n_digits), expected_roots[index])
 
     def test_solve_equation(self):
         epsilon = 0.0001
@@ -181,59 +190,90 @@ class Tests(unittest.TestCase):
 
         polynomial = Polynomial.parse("11x+6")
         roots = solve_equation(polynomial, epsilon)
-        for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+        expected_roots = [-6/11]
+        self.assertEqual(len(roots), len(expected_roots))
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
 
         polynomial = Polynomial.parse("6x^2+11x+6")
         roots = solve_equation(polynomial, epsilon)
-        for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+        expected_roots = []
+        self.assertEqual(len(roots), len(expected_roots))
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
 
         polynomial = Polynomial.parse("x^3+6x^2+11x+6")
         roots = solve_equation(polynomial, epsilon)
-        for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
-
-        polynomial = Polynomial.parse("x^4-4x^2+20x-7")
-        roots = solve_equation(polynomial, epsilon)
-        for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+        expected_roots = [-3, -2, -1]
+        self.assertEqual(len(roots), len(expected_roots))
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
 
         polynomial = Polynomial.parse("x^2-1").multiply(Polynomial.parse("x^2-4"))
         roots = solve_equation(polynomial, epsilon)
-        for root in roots:
-            self.assertEqual(abs(polynomial.eval(root)) <= epsilon, True)
+        expected_roots = [-2, -1, 1, 2]
+        self.assertEqual(len(roots), len(expected_roots))
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
             
-    def test_parse_and_solve(self):
-        epsilon = 0.0001
+    def test_parse_and_solve_and_round(self):
+        epsilon = 0.00001
         
         expression = "x^2-1"
-        roots = parse_and_solve(expression, epsilon)
-        for root in roots:
-            print(root)
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = [-1, 1]
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
 
         expression = "x^2-1=0"
-        roots = parse_and_solve(expression, epsilon)
-        for root in roots:
-            print(root)
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = [-1, 1]
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
 
         expression = "x^2-1=8"
-        roots = parse_and_solve(expression, epsilon)
-        for root in roots:
-            print(root)
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = [-3, 3]
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
 
         expression = "x^2-1=-2x+2"
-        roots = parse_and_solve(expression, epsilon)
-        for root in roots:
-            print(root)
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = [-3, 1]
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
 
         expression = "x^2+2.5x+1.5"
-        roots = parse_and_solve(expression, epsilon)
-        for root in roots:
-            print(root)
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = [-1.5, -1]
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
 
-    def test_round_root(self):
+        expression = "x^4-4x^2+20x-7"
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = [-3.2788, 0.3775]
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
+
+        expression = "0x-7"
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = []
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
+
+        expression = "0x+0"
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = ["Infinite roots"]
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
+
+    def test_try_round_root(self):
         p = Polynomial.parse("x-0.9999")
         raw_root = 0.9999
-        root = round_root(p, raw_root, 3)
-        print(root)
+        root = try_round_root(p, raw_root, 3)
+        self.assertEqual(root, 0.9999)
+
+        p = Polynomial.parse("x^2-1")
+        raw_root = 0.9999
+        root = try_round_root(p, raw_root, 3)
+        self.assertEqual(root, 1)
