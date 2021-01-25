@@ -1,7 +1,7 @@
 import unittest
 
 from polynomial import Polynomial
-from util import convert_from_epsilon_to_n_digit
+from util import convert_from_epsilon_to_n_digit, try_round_root
 
 
 def find_root_using_bisection(polynomial, epsilon, lower, upper):
@@ -114,17 +114,6 @@ def parse_and_solve_and_round(expression, epsilon):
         return roots
     n_digits = convert_from_epsilon_to_n_digit(epsilon)
     return list(map(lambda root: round(root, n_digits), roots))
-
-
-def try_round_root(polynomial, raw_root, n_digits):
-    root = round(raw_root, n_digits)
-    if abs(polynomial.eval(root)) <= abs(polynomial.eval(raw_root)):
-        if int(root) == root:
-            return int(root)
-        else:
-            return root
-    else:
-        return raw_root
 
 
 class Tests(unittest.TestCase):
@@ -268,13 +257,15 @@ class Tests(unittest.TestCase):
         for index in range(len(roots)):
             self.assertEqual(roots[index], expected_roots[index])
 
-    def test_try_round_root(self):
-        p = Polynomial.parse("x-0.9999")
-        raw_root = 0.9999
-        root = try_round_root(p, raw_root, 3)
-        self.assertEqual(root, 0.9999)
+        expression = "x^5-5x^3+4=0"
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = [-2.3077, 1, 2.1433]
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
 
-        p = Polynomial.parse("x^2-1")
-        raw_root = 0.9999
-        root = try_round_root(p, raw_root, 3)
-        self.assertEqual(root, 1)
+        expression = "x^5-6x^4+4=0"
+        roots = parse_and_solve_and_round(expression, epsilon)
+        expected_roots = [-0.8734, 0.9431, 5.9969]
+        for index in range(len(roots)):
+            self.assertEqual(roots[index], expected_roots[index])
+
