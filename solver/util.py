@@ -4,6 +4,12 @@ from math import log
 from polynomial import Polynomial
 
 
+def peek(list_based_stack: list):
+    if len(list_based_stack) == 0:
+        return None
+    return list_based_stack[len(list_based_stack) - 1]
+
+
 def convert_from_epsilon_to_n_digit(epsilon):
     return round(-log(epsilon, 10)) - 1
 

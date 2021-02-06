@@ -1,12 +1,14 @@
 import unittest
 
+from util import peek
+
 
 def convert_to_token_list(expression):
     result = []
     for i in range(len(expression)):
         character = expression[i]
         if check_is_part_of_number(character) and len(result) > 0:
-            last_token = result[len(result) - 1]
+            last_token = peek(result)
             if check_is_a_number(last_token):
                 result[len(result) - 1] = last_token + character
             else:
@@ -43,6 +45,9 @@ class Tests(unittest.TestCase):
         self.assertEqual(check_is_a_number("15"), True)
         self.assertEqual(check_is_a_number("1.5"), True)
         self.assertEqual(check_is_a_number("0.15"), True)
+        self.assertEqual(check_is_a_number("x"), False)
+        self.assertEqual(check_is_a_number("("), False)
+        self.assertEqual(check_is_a_number("+"), False)
 
     def test_convert_to_token_list(self):
         self.assertEqual(convert_to_token_list("x"), ["x"])
