@@ -1,7 +1,22 @@
 import unittest
+from math import log
 
 from polynomial import Polynomial
-from util import convert_from_epsilon_to_n_digit, try_round_root
+
+
+def convert_from_epsilon_to_n_digit(epsilon):
+    return round(-log(epsilon, 10)) - 1
+
+
+def try_round_root(polynomial, raw_root, n_digits):
+    root = round(raw_root, n_digits)
+    if abs(polynomial.eval(root)) <= abs(polynomial.eval(raw_root)):
+        if int(root) == root:
+            return int(root)
+        else:
+            return root
+    else:
+        return raw_root
 
 
 def find_root_using_bisection(polynomial, epsilon, lower, upper):
@@ -268,4 +283,3 @@ class Tests(unittest.TestCase):
         expected_roots = [-0.8734, 0.9431, 5.9969]
         for index in range(len(roots)):
             self.assertEqual(roots[index], expected_roots[index])
-

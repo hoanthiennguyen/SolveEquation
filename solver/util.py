@@ -1,8 +1,3 @@
-import unittest
-from math import log
-
-from polynomial import Polynomial
-
 
 def peek(list_based_stack: list):
     if len(list_based_stack) == 0:
@@ -10,33 +5,21 @@ def peek(list_based_stack: list):
     return list_based_stack[len(list_based_stack) - 1]
 
 
-def convert_from_epsilon_to_n_digit(epsilon):
-    return round(-log(epsilon, 10)) - 1
+def check_is_an_integer(token):
+    try:
+        int(token)
+        return True
+    except TypeError:
+        return False
+    except ValueError:
+        return False
 
 
-def try_round_root(polynomial, raw_root, n_digits):
-    root = round(raw_root, n_digits)
-    if abs(polynomial.eval(root)) <= abs(polynomial.eval(raw_root)):
-        if int(root) == root:
-            return int(root)
-        else:
-            return root
-    else:
-        return raw_root
-
-
-class Tests(unittest.TestCase):
-
-    def test_convert_from_epsilon_to_n_digit(self):
-        self.assertEqual(convert_from_epsilon_to_n_digit(0.00001), 4)
-
-    def test_try_round_root(self):
-        p = Polynomial.parse("x-0.9999")
-        raw_root = 0.9999
-        root = try_round_root(p, raw_root, 3)
-        self.assertEqual(root, 0.9999)
-
-        p = Polynomial.parse("x^2-1")
-        raw_root = 0.9999
-        root = try_round_root(p, raw_root, 3)
-        self.assertEqual(root, 1)
+def check_is_a_number(token):
+    try:
+        float(token)
+        return True
+    except TypeError:
+        return False
+    except ValueError:
+        return False

@@ -1,6 +1,9 @@
+import copy
 import unittest
 
 from monomial import Monomial
+from error import EvaluationError
+from util import check_is_a_number
 
 
 def get_next_monomial(expression, start):
@@ -27,7 +30,12 @@ class Polynomial:
     def __str__(self):
         result = ""
         for degree in self.dictionary:
-            result += "{}x^{} + ".format(self.dictionary[degree], degree)
+            if degree == 0:
+                result += "{} + ".format(self.dictionary[degree])
+            elif degree == 1:
+                result += "{}x + ".format(self.dictionary[degree])
+            else:
+                result += "{}x^{} + ".format(self.dictionary[degree], degree)
 
         return result[0:len(result) - 3]
 
@@ -61,6 +69,10 @@ class Polynomial:
                 result[d1 + d2] = result.get(d1 + d2, 0) + self.dictionary.get(d1) * other.dictionary.get(d2)
 
         return Polynomial(result).simplify()
+
+    @staticmethod
+    def from_constant(number):
+        return Polynomial({0: number})
 
     @staticmethod
     def parse(expression):
@@ -149,7 +161,41 @@ class Polynomial:
                 return float('-inf')
             else:
                 return float('inf')
-            
+
+    def divide(self, denominator):
+        if check_is_a_number(denominator):
+            denominator = float(denominator)
+            if denominator == 0:
+                raise EvaluationError("Divided by zero")
+            result = copy.deepcopy(self)
+            for degree in range(result.get_highest_degree()+1):
+                if result.get_coefficient(degree) != 0:
+                    result.dictionary[degree] = result.get_coefficient(degree) / denominator
+            return result
+        else:
+            raise EvaluationError("Rational is not supported")
+
+    def is_constant(self):
+        return self.get_highest_degree() == 0
+
+    def power(self, op2):
+        if op2.is_constant():
+            degree = op2.get_coefficient(0)
+            if int(degree) == degree:
+                degree = int(degree)
+                if degree >= 0:
+                    result = Polynomial({0: 1})
+                    for i in range(degree):
+                        result = result.multiply(self)
+                    return result
+                else:
+                    raise EvaluationError("Negative power is not supported: " + str(degree))
+            else:
+                raise EvaluationError("Not integer power is not supported: " + str(degree))
+
+        else:
+            raise EvaluationError("Not number degree is not supported: " + str(op2))
+
 
 class Tests(unittest.TestCase):
 
@@ -235,6 +281,19 @@ class Tests(unittest.TestCase):
         self.assertEqual(Polynomial.parse("-x^2+1").get_coefficient(2), -1)
         self.assertEqual(Polynomial.parse("-x^2+1").get_coefficient(1), 0)
         self.assertEqual(Polynomial.parse("-x^2+1").get_coefficient(0), 1)
+
+    def test_divide(self):
+        self.assertEqual(Polynomial({2: 2, 0: -3}).divide(2), Polynomial({2: 1, 0: -3/2}))
+        self.assertEqual(Polynomial({2: 2, 0: -3}).divide(1), Polynomial({2: 2, 0: -3}))
+
+    def test_power(self):
+        self.assertEqual(Polynomial({1: 1, 0: 1}).power(Polynomial.from_constant(0)), Polynomial({0: 1}))
+        self.assertEqual(Polynomial({1: 1, 0: 1}).power(Polynomial.from_constant(1)), Polynomial({1: 1, 0: 1}))
+        self.assertEqual(Polynomial({1: 1, 0: 1}).power(Polynomial.from_constant(2)), Polynomial({2: 1, 1: 2, 0: 1}))
+        self.assertEqual(Polynomial({1: 1, 0: 1}).power(Polynomial.from_constant(3)),
+                         Polynomial({3: 1, 2: 3, 1: 3, 0: 1}))
+        self.assertEqual(Polynomial({1: 1, 0: 2}).power(Polynomial.from_constant(3)),
+                         Polynomial({3: 1, 2: 6, 1: 12, 0: 8}))
 
 
 if __name__ == '__main__':

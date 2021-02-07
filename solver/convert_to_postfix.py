@@ -2,8 +2,8 @@ import unittest
 
 from typing import List
 
-from convert_to_token_list import check_is_a_number, convert_to_token_list
-from util import peek
+from convert_to_token_list import convert_to_token_list
+from util import peek, check_is_a_number
 
 
 def get_precedence(operator):
@@ -61,6 +61,7 @@ def is_operator(token):
 
 def convert_infix_to_postfix(token_list: List[str]):
     # Reference: https://www.geeksforgeeks.org/stack-set-2-infix-to-postfix/
+    # TODO: consider handling right associative operator
     result = []
     operator_stack = []
     for token in token_list:
@@ -85,7 +86,7 @@ def convert_infix_to_postfix(token_list: List[str]):
     return result
 
 
-def convert_infix_to_postfix_wrapper(expression):
+def convert_infix_to_postfix_testing_wrapper(expression):
     token_list = convert_to_token_list(expression)
     postfix_list = convert_infix_to_postfix(token_list)
     result = ""
@@ -97,15 +98,15 @@ def convert_infix_to_postfix_wrapper(expression):
 class Test(unittest.TestCase):
     # Reference: https://www.mathblog.dk/tools/infix-postfix-converter/
     def test_convert_to_postfix(self):
-        self.assertEqual(convert_infix_to_postfix_wrapper("4"), "4")
-        self.assertEqual(convert_infix_to_postfix_wrapper("x"), "x")
-        self.assertEqual(convert_infix_to_postfix_wrapper("4+5"), "4 5 +")
-        self.assertEqual(convert_infix_to_postfix_wrapper("3+4*5"), "3 4 5 * +")
-        self.assertEqual(convert_infix_to_postfix_wrapper("3+4*5-2*6"), "3 4 5 * + 2 6 * -")
-        self.assertEqual(convert_infix_to_postfix_wrapper("3+2*(x+1)-7"), "3 2 x 1 + * + 7 -")
-        self.assertEqual(convert_infix_to_postfix_wrapper("3+2*x^2-1"), "3 2 x 2 ^ * + 1 -")
-        self.assertEqual(convert_infix_to_postfix_wrapper("(x+1)^2-3"), "x 1 + 2 ^ 3 -")
-        self.assertEqual(convert_infix_to_postfix_wrapper("x-(x+1)*(x+2)-10"), "x x 1 + x 2 + * - 10 -")
-        self.assertEqual(convert_infix_to_postfix_wrapper("(x+1)*(x+2)-10"), "x 1 + x 2 + * 10 -")
-        self.assertEqual(convert_infix_to_postfix_wrapper("(x+10)^2-3"), "x 10 + 2 ^ 3 -")
-        self.assertEqual(convert_infix_to_postfix_wrapper("(2.5*x+10)^2-3"), "2.5 x * 10 + 2 ^ 3 -")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("4"), "4")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("x"), "x")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("4+5"), "4 5 +")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("3+4*5"), "3 4 5 * +")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("3+4*5-2*6"), "3 4 5 * + 2 6 * -")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("3+2*(x+1)-7"), "3 2 x 1 + * + 7 -")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("3+2*x^2-1"), "3 2 x 2 ^ * + 1 -")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("(x+1)^2-3"), "x 1 + 2 ^ 3 -")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("x-(x+1)*(x+2)-10"), "x x 1 + x 2 + * - 10 -")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("(x+1)*(x+2)-10"), "x 1 + x 2 + * 10 -")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("(x+10)^2-3"), "x 10 + 2 ^ 3 -")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("(2.5*x+10)^2-3"), "2.5 x * 10 + 2 ^ 3 -")
