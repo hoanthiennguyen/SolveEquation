@@ -17,6 +17,14 @@ def get_precedence(operator):
     return precedence.get(operator, 0)
 
 
+def is_right_associative(operator):
+    return operator in ["^"]
+
+
+def is_left_associative(operator):
+    return not is_right_associative(operator)
+
+
 def is_operand(token: str):
     return check_is_a_number(token) or token.isalpha()
 
@@ -61,7 +69,6 @@ def is_operator(token):
 
 def convert_infix_to_postfix(token_list: List[str]):
     # Reference: https://www.geeksforgeeks.org/stack-set-2-infix-to-postfix/
-    # TODO: consider handling right associative operator
     result = []
     operator_stack = []
     for token in token_list:
@@ -76,7 +83,9 @@ def convert_infix_to_postfix(token_list: List[str]):
             if len(operator_stack) > 0:
                 operator_stack.pop()
         else:
-            while len(operator_stack) > 0 and get_precedence(token) <= get_precedence(peek(operator_stack)):
+            while len(operator_stack) > 0 and \
+                    (is_left_associative(token) and get_precedence(token) <= get_precedence(peek(operator_stack))
+                     or is_right_associative(token) and get_precedence(token) < get_precedence(peek(operator_stack))):
                 result.append(operator_stack.pop())
             operator_stack.append(token)
 
@@ -102,6 +111,7 @@ class Test(unittest.TestCase):
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("x"), "x")
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("4+5"), "4 5 +")
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("3+4*5"), "3 4 5 * +")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("1+2^2^3"), "1 2 2 3 ^ ^ +")
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("3+4*5-2*6"), "3 4 5 * + 2 6 * -")
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("3+2*(x+1)-7"), "3 2 x 1 + * + 7 -")
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("3+2*x^2-1"), "3 2 x 2 ^ * + 1 -")

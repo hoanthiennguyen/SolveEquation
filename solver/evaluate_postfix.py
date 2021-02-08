@@ -53,6 +53,12 @@ class Tests(unittest.TestCase):
         expression = "3+4*5"
         self.assertEqual(evaluate_postfix_testing_wrapper(expression), Polynomial.from_constant(23))
 
+        expression = "3+4*5^2"
+        self.assertEqual(evaluate_postfix_testing_wrapper(expression), Polynomial.from_constant(103))
+
+        expression = "1+2^2^3"
+        self.assertEqual(evaluate_postfix_testing_wrapper(expression), Polynomial.from_constant(257))
+
         expression = "2*x-5+3*x"
         self.assertEqual(evaluate_postfix_testing_wrapper(expression), Polynomial.parse("5x-5"))
 
@@ -68,3 +74,5 @@ class Tests(unittest.TestCase):
         expression = "10-3*(x+1)^2"
         self.assertEqual(evaluate_postfix_testing_wrapper(expression), Polynomial.parse("7-3*x^2-6*x"))
 
+        expression = "(x+1)^3"
+        self.assertEqual(evaluate_postfix_testing_wrapper(expression), Polynomial.parse("x^3+3*x^2+3*x+1"))
