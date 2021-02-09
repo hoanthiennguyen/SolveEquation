@@ -59,10 +59,6 @@ def get_corresponding_opening_bracket(closing_bracket):
         return "{"
 
 
-def contain_opening_bracket(operator_stack: List[str]):
-    return "(" in operator_stack or "[" in operator_stack or "{" in operator_stack
-
-
 def is_operator(token):
     return token in ["+", "-", "*", "/", "^"]
 
