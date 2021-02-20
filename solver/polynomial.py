@@ -60,13 +60,22 @@ class Polynomial:
 
     def __str__(self):
         result = ""
+        if len(self.dictionary) == 0:
+            return "0"
+
         for degree in self.dictionary:
             if degree == 0:
-                result += "{} + ".format(self.dictionary[degree])
+                result += "{} + ".format(self.get_coefficient(degree))
             elif degree == 1:
-                result += "{}x + ".format(self.dictionary[degree])
+                if self.get_coefficient(degree) == 1:
+                    result += "x + "
+                else:
+                    result += "{}x + ".format(self.dictionary[degree])
             else:
-                result += "{}x^{} + ".format(self.dictionary[degree], degree)
+                if self.get_coefficient(degree) == 1:
+                    result += "x^{} + ".format(degree)
+                else:
+                    result += "{}x^{} + ".format(self.get_coefficient(degree), degree)
 
         return result[0:len(result) - 3]
 
