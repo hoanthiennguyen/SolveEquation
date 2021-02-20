@@ -9,8 +9,6 @@ from error import EvaluationError
 def parse_operand(operand: str):
     if operand == 'x':
         dictionary = {1: 1}
-    elif operand == '-x':
-        dictionary = {1: -1}
     else:
         dictionary = {0: float(operand)}
     return Polynomial(dictionary)
