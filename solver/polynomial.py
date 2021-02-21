@@ -2,10 +2,10 @@ import copy
 import unittest
 from typing import List
 
-from error import EvaluationError
+from error import EvaluationError, ExpressionSyntaxError
 from convert_to_postfix import convert_infix_to_postfix
 from convert_to_token_list import convert_to_token_list
-from util import check_is_a_number, is_unary_operator, is_operand
+from util import check_is_a_number, is_unary_operator, is_operand, is_binary_operator
 
 
 def parse_operand(operand: str):
@@ -22,13 +22,13 @@ def evaluate_postfix(token_list: List[str]):
         if is_operand(token):
             operand_stack.append(parse_operand(token))
         else:
-            if is_unary_operator(token):
+            if is_unary_operator(token) and len(operand_stack) >= 1:
                 op1 = operand_stack.pop()
                 if token == "neg":
                     result = op1.neg()
                 else:
-                    raise EvaluationError("Not supported operator: " + token)
-            else:
+                    raise ExpressionSyntaxError("Not supported operator: " + token)
+            elif is_binary_operator(token) and len(operand_stack) >= 2:
                 op2 = operand_stack.pop()
                 op1 = operand_stack.pop()
                 if token == "+":
@@ -42,11 +42,15 @@ def evaluate_postfix(token_list: List[str]):
                 elif token == "^":
                     result = op1.power(op2)
                 else:
-                    raise EvaluationError("Not supported operator: " + token)
+                    raise ExpressionSyntaxError("Not supported operator: " + token)
+            else:
+                raise ExpressionSyntaxError("Incomplete expression")
 
             operand_stack.append(result)
-
-    return operand_stack.pop()
+    if len(operand_stack) == 1:
+        return operand_stack.pop()
+    else:
+        raise ExpressionSyntaxError("Incomplete expression")
 
 
 def parse_to_polynomial(expression):

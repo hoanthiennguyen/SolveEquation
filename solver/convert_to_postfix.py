@@ -3,7 +3,7 @@ import unittest
 from typing import List
 
 from convert_to_token_list import convert_to_token_list
-from error import EvaluationError
+from error import ExpressionSyntaxError
 from util import peek, is_operator, is_opening_bracket, is_closing_bracket, is_operand
 
 
@@ -16,7 +16,7 @@ def get_precedence(operator):
         return 2
     if operator == "^":
         return 3
-    raise EvaluationError("Not supported operator")
+    raise ExpressionSyntaxError("Not supported operator: " + operator)
 
 
 def is_right_associative(operator):
@@ -35,7 +35,7 @@ def get_corresponding_closing_bracket(opening_bracket):
     elif opening_bracket == "{":
         return "}"
     else:
-        raise EvaluationError("Not supported opening bracket: " + opening_bracket)
+        raise ExpressionSyntaxError("Not supported opening bracket: " + opening_bracket)
 
 
 def get_corresponding_opening_bracket(closing_bracket):
@@ -46,7 +46,7 @@ def get_corresponding_opening_bracket(closing_bracket):
     elif closing_bracket == "}":
         return "{"
     else:
-        raise EvaluationError("Not supported closing bracket: " + closing_bracket)
+        raise ExpressionSyntaxError("Not supported closing bracket: " + closing_bracket)
 
 
 def convert_infix_to_postfix(token_list: List[str]):
@@ -64,15 +64,22 @@ def convert_infix_to_postfix(token_list: List[str]):
             # discard opening bracket
             if len(operator_stack) > 0:
                 operator_stack.pop()
-        else:
+            else:
+                raise ExpressionSyntaxError("Cannot find corresponding opening bracket of: " + token)
+        elif is_operator(token):
             while len(operator_stack) > 0 and is_operator(peek(operator_stack)) and\
                     ((is_left_associative(token) and get_precedence(token) <= get_precedence(peek(operator_stack))
                      or is_right_associative(token) and get_precedence(token) < get_precedence(peek(operator_stack)))):
                 result.append(operator_stack.pop())
             operator_stack.append(token)
+        else:
+            raise ExpressionSyntaxError("Token is not supported: " + token)
 
     while len(operator_stack) > 0:
-        result.append(operator_stack.pop())
+        if is_operator(peek(operator_stack)):
+            result.append(operator_stack.pop())
+        else:
+            raise ExpressionSyntaxError("Incomplete expression")
 
     return result
 
