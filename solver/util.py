@@ -1,36 +1,53 @@
-import unittest
-from math import log
 
-from polynomial import Polynomial
-
-
-def convert_from_epsilon_to_n_digit(epsilon):
-    return round(-log(epsilon, 10)) - 1
+def peek(list_based_stack: list):
+    if len(list_based_stack) == 0:
+        return None
+    return list_based_stack[len(list_based_stack) - 1]
 
 
-def try_round_root(polynomial, raw_root, n_digits):
-    root = round(raw_root, n_digits)
-    if abs(polynomial.eval(root)) <= abs(polynomial.eval(raw_root)):
-        if int(root) == root:
-            return int(root)
-        else:
-            return root
-    else:
-        return raw_root
+def check_is_an_integer(token):
+    try:
+        int(token)
+        return True
+    except TypeError:
+        return False
+    except ValueError:
+        return False
 
 
-class Tests(unittest.TestCase):
+def check_is_a_number(token):
+    try:
+        float(token)
+        return True
+    except TypeError:
+        return False
+    except ValueError:
+        return False
 
-    def test_convert_from_epsilon_to_n_digit(self):
-        self.assertEqual(convert_from_epsilon_to_n_digit(0.00001), 4)
 
-    def test_try_round_root(self):
-        p = Polynomial.parse("x-0.9999")
-        raw_root = 0.9999
-        root = try_round_root(p, raw_root, 3)
-        self.assertEqual(root, 0.9999)
+def is_unary_operator(token):
+    return token in ["neg", "pos"]
 
-        p = Polynomial.parse("x^2-1")
-        raw_root = 0.9999
-        root = try_round_root(p, raw_root, 3)
-        self.assertEqual(root, 1)
+
+def is_binary_operator(token):
+    return token in ["+", "-", "*", "/", "^"]
+
+
+def is_operator(token):
+    return is_unary_operator(token) or is_binary_operator(token)
+
+
+def is_opening_bracket(token: str):
+    return token in ["(", "[", "{"]
+
+
+def is_closing_bracket(token: str):
+    return token in [")", "]", "}"]
+
+
+def is_bracket(token: str):
+    return is_opening_bracket(token) or is_closing_bracket(token)
+
+
+def is_operand(token: str):
+    return check_is_a_number(token) or token == "x"

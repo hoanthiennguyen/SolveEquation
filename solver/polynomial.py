@@ -1,17 +1,64 @@
+import copy
 import unittest
+from typing import List
 
-from monomial import Monomial
+from error import EvaluationError, ExpressionSyntaxError
+from convert_to_postfix import convert_infix_to_postfix
+from convert_to_token_list import convert_to_token_list
+from util import check_is_a_number, is_unary_operator, is_operand, is_binary_operator
 
 
-def get_next_monomial(expression, start):
-    for i in range(start + 1, len(expression)):
-        if (expression[i] == "+" or expression[i] == "-") \
-                and expression[i - 1] != "*" and expression[i - 1] != "/" \
-                and expression[i - 1] != "+" and expression[i - 1] != "-" \
-                and expression[i - 1] != "^":
-            return expression[start:i]
+def parse_operand(operand: str):
+    if operand == 'x':
+        dictionary = {1: 1}
+    else:
+        dictionary = {0: float(operand)}
+    return Polynomial(dictionary)
 
-    return expression[start:]
+
+def evaluate_postfix(token_list: List[str]):
+    operand_stack = []
+    for token in token_list:
+        if is_operand(token):
+            operand_stack.append(parse_operand(token))
+        else:
+            if is_unary_operator(token) and len(operand_stack) >= 1:
+                op1 = operand_stack.pop()
+                if token == "neg":
+                    result = op1.neg()
+                elif token == "pos":
+                    result = op1
+                else:
+                    raise ExpressionSyntaxError("Not supported operator: " + token)
+            elif is_binary_operator(token) and len(operand_stack) >= 2:
+                op2 = operand_stack.pop()
+                op1 = operand_stack.pop()
+                if token == "+":
+                    result = op1.plus(op2)
+                elif token == "-":
+                    result = op1.minus(op2)
+                elif token == "*":
+                    result = op1.multiply(op2)
+                elif token == "/":
+                    result = op1.divide(op2)
+                elif token == "^":
+                    result = op1.power(op2)
+                else:
+                    raise ExpressionSyntaxError("Not supported operator: " + token)
+            else:
+                raise ExpressionSyntaxError("Incomplete expression")
+
+            operand_stack.append(result)
+    if len(operand_stack) == 1:
+        return operand_stack.pop()
+    else:
+        raise ExpressionSyntaxError("Incomplete expression")
+
+
+def parse_to_polynomial(expression):
+    token_list = convert_to_token_list(expression)
+    postfix_token_list = convert_infix_to_postfix(token_list)
+    return evaluate_postfix(postfix_token_list).simplify()
 
 
 class Polynomial:
@@ -26,8 +73,22 @@ class Polynomial:
 
     def __str__(self):
         result = ""
+        if len(self.dictionary) == 0:
+            return "0"
+
         for degree in self.dictionary:
-            result += "{}x^{} + ".format(self.dictionary[degree], degree)
+            if degree == 0:
+                result += "{} + ".format(self.get_coefficient(degree))
+            elif degree == 1:
+                if self.get_coefficient(degree) == 1:
+                    result += "x + "
+                else:
+                    result += "{}x + ".format(self.dictionary[degree])
+            else:
+                if self.get_coefficient(degree) == 1:
+                    result += "x^{} + ".format(degree)
+                else:
+                    result += "{}x^{} + ".format(self.get_coefficient(degree), degree)
 
         return result[0:len(result) - 3]
 
@@ -62,20 +123,16 @@ class Polynomial:
 
         return Polynomial(result).simplify()
 
-    @staticmethod
-    def parse(expression):
-        dictionary = {}
-        index = 0
-        while index < len(expression):
-            monomial_str = get_next_monomial(expression, index)
-            monomial = Monomial.parse(monomial_str)
-            degree = monomial.degree
-            coefficient = monomial.coefficient
-            dictionary[degree] = dictionary.get(degree, 0) + coefficient
-            index = index + len(monomial_str)
+    def neg(self):
+        result = copy.deepcopy(self)
+        for degree in result.dictionary:
+            result.dictionary[degree] = -(result.dictionary[degree])
+        return result
 
-        return Polynomial(dictionary).simplify()
-    
+    @staticmethod
+    def from_constant(number):
+        return Polynomial({0: number})
+
     def simplify(self):
         zero_coefficient = []
         for degree in self.dictionary:
@@ -149,92 +206,183 @@ class Polynomial:
                 return float('-inf')
             else:
                 return float('inf')
-            
+
+    def divide(self, op2):
+        if isinstance(op2, Polynomial) and op2.is_constant():
+            denominator = op2.get_coefficient(0)
+        elif check_is_a_number(op2):
+            denominator = op2
+        else:
+            raise EvaluationError("Denominator must be a number")
+
+        if denominator == 0:
+            raise EvaluationError("Divided by zero")
+        result = copy.deepcopy(self)
+        for degree in range(result.get_highest_degree() + 1):
+            if result.get_coefficient(degree) != 0:
+                result.dictionary[degree] = result.get_coefficient(degree) / denominator
+        return result
+
+    def is_constant(self):
+        return self.get_highest_degree() == 0
+
+    def power(self, op2):
+        if isinstance(op2, Polynomial) and op2.is_constant():
+            degree = op2.get_coefficient(0)
+        elif check_is_a_number(op2):
+            degree = op2
+        else:
+            raise EvaluationError("Denominator must be a number")
+        if int(degree) == degree:
+            degree = int(degree)
+            if degree >= 0:
+                result = Polynomial({0: 1})
+                for i in range(degree):
+                    result = result.multiply(self)
+                return result
+            else:
+                raise EvaluationError("Negative power is not supported: " + str(degree))
+        else:
+            raise EvaluationError("Not integer power is not supported: " + str(degree))
+
 
 class Tests(unittest.TestCase):
 
     def test_parse(self):
-        self.assertEqual(Polynomial.parse("1"), Polynomial({0: 1}))
-        self.assertEqual(Polynomial.parse("x"), Polynomial({1: 1}))
-        self.assertEqual(Polynomial.parse("-x"), Polynomial({1: -1}))
-        self.assertEqual(Polynomial.parse("x-x"), Polynomial({}))
-        self.assertEqual(Polynomial.parse("20x"), Polynomial({1: 20}))
-        self.assertEqual(Polynomial.parse("3*20x"), Polynomial({1: 60}))
-        self.assertEqual(Polynomial.parse("1/3*x^3-x"), Polynomial({3: 1 / 3, 1: -1}))
-        self.assertEqual(Polynomial.parse("x^3/3-x"), Polynomial({3: 1 / 3, 1: -1}))
-        self.assertEqual(Polynomial.parse("3*2x+-5x"), Polynomial({1: 1}))
-        self.assertEqual(Polynomial.parse("-x+3x^2+1"), Polynomial({2: 3, 1: -1, 0: 1}))
-        self.assertEqual(Polynomial.parse("3x^2-x+1"), Polynomial({2: 3, 1: -1, 0: 1}))
-        self.assertEqual(Polynomial.parse("3x^2-x+1+9x-3"), Polynomial({2: 3, 1: 8, 0: -2}))
+        self.assertEqual(parse_to_polynomial("1"), Polynomial({0: 1}))
+        self.assertEqual(parse_to_polynomial("x"), Polynomial({1: 1}))
+        self.assertEqual(parse_to_polynomial("+x"), Polynomial({1: 1}))
+        self.assertEqual(parse_to_polynomial("-x"), Polynomial({1: -1}))
+        self.assertEqual(parse_to_polynomial("--x"), Polynomial({1: 1}))
+        self.assertEqual(parse_to_polynomial("++x"), Polynomial({1: 1}))
+        self.assertEqual(parse_to_polynomial("-+x"), Polynomial({1: -1}))
+        self.assertEqual(parse_to_polynomial("+-x"), Polynomial({1: -1}))
+        self.assertEqual(parse_to_polynomial("(-x)^2"), Polynomial({2: 1}))
+        self.assertEqual(parse_to_polynomial("(+x)^2"), Polynomial({2: 1}))
+        self.assertEqual(parse_to_polynomial("-x^2+3*2"), Polynomial({2: -1, 0: 6}))
+        self.assertEqual(parse_to_polynomial("x-x"), Polynomial({}))
+        self.assertEqual(parse_to_polynomial("20*x"), Polynomial({1: 20}))
+        self.assertEqual(parse_to_polynomial("3*20*x"), Polynomial({1: 60}))
+        self.assertEqual(parse_to_polynomial("1/3*x^3-x"), Polynomial({3: 1 / 3, 1: -1}))
+        self.assertEqual(parse_to_polynomial("x^3/3-x"), Polynomial({3: 1 / 3, 1: -1}))
+        self.assertEqual(parse_to_polynomial("3*2*x-5*x"), Polynomial({1: 1}))
+        self.assertEqual(parse_to_polynomial("x+3*x^2+1"), Polynomial({2: 3, 1: 1, 0: 1}))
+        self.assertEqual(parse_to_polynomial("3*x^2-x+1"), Polynomial({2: 3, 1: -1, 0: 1}))
+        self.assertEqual(parse_to_polynomial("3*x^2-x+1+9*x-3"), Polynomial({2: 3, 1: 8, 0: -2}))
+
+        expression = "3+4*5"
+        self.assertEqual(parse_to_polynomial(expression), Polynomial.from_constant(23))
+
+        expression = "3+4*5^2"
+        self.assertEqual(parse_to_polynomial(expression), Polynomial.from_constant(103))
+
+        expression = "1+2^2^3"
+        self.assertEqual(parse_to_polynomial(expression), Polynomial.from_constant(257))
+
+        expression = "2*x-5+3*x"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("5*x-5"))
+
+        expression = "10-2*(x+1)"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("8-2*x"))
+
+        expression = "(x+2)^2-4"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("x^2+4*x"))
+
+        expression = "2*(x+2)^2-4"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("2*x^2+8*x+4"))
+
+        expression = "10-3*(x+1)^2"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("7-3*x^2-6*x"))
+
+        expression = "(x+1)^3"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("x^3+3*x^2+3*x+1"))
+
+        expression = "(-x+1)^2"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("x^2-2*x+1"))
+
+        expression = "-(x+1)*2+4"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("2-2*x"))
+
+        expression = "(x+2*(x+1))^2+1"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("9*x^2+12*x+5"))
 
     def test_get_full_coefficient(self):
-        self.assertEqual(Polynomial.parse("x^2-1").get_full_coefficient(), [1, 0, -1])
-        self.assertEqual(Polynomial.parse("x^2-2x-1").get_full_coefficient(), [1, -2, -1])
-        self.assertEqual(Polynomial.parse("x^2-2x").get_full_coefficient(), [1, -2, 0])
-        self.assertEqual(Polynomial.parse("x^2").get_full_coefficient(), [1, 0, 0])
+        self.assertEqual(parse_to_polynomial("x^2-1").get_full_coefficient(), [1, 0, -1])
+        self.assertEqual(parse_to_polynomial("x^2-2*x-1").get_full_coefficient(), [1, -2, -1])
+        self.assertEqual(parse_to_polynomial("x^2-2*x").get_full_coefficient(), [1, -2, 0])
+        self.assertEqual(parse_to_polynomial("x^2").get_full_coefficient(), [1, 0, 0])
 
     def test_plus(self):
-        self.assertEqual(Polynomial.parse("2x-3").plus(Polynomial.parse("3x+5")), Polynomial.parse("5x+2"))
-        self.assertEqual(Polynomial.parse("2x+1").plus(Polynomial.parse("0")), Polynomial.parse("2x+1"))
-        self.assertEqual(Polynomial.parse("0").plus(Polynomial.parse("2x+1")), Polynomial.parse("2x+1"))
-        self.assertEqual(Polynomial.parse("0").plus(Polynomial.parse("0")), Polynomial.parse("0"))
-        self.assertEqual(Polynomial.parse("-2x-3").plus(Polynomial.parse("3x+5-x^2")), Polynomial.parse("x+2-x^2"))
+        self.assertEqual(parse_to_polynomial("2*x-3").plus(parse_to_polynomial("3*x+5")), parse_to_polynomial("5*x+2"))
+        self.assertEqual(parse_to_polynomial("2*x+1").plus(parse_to_polynomial("0")), parse_to_polynomial("2*x+1"))
+        self.assertEqual(parse_to_polynomial("0").plus(parse_to_polynomial("2*x+1")), parse_to_polynomial("2*x+1"))
+        self.assertEqual(parse_to_polynomial("0").plus(parse_to_polynomial("0")), parse_to_polynomial("0"))
+        self.assertEqual(parse_to_polynomial("2*x-3").plus(parse_to_polynomial("3*x+5-x^2")),
+                         parse_to_polynomial("5*x+2-x^2"))
 
     def test_minus(self):
-        self.assertEqual(Polynomial.parse("2x+1").minus(Polynomial.parse("0")), Polynomial.parse("2x+1"))
-        self.assertEqual(Polynomial.parse("0").minus(Polynomial.parse("2x+1")), Polynomial.parse("-2x-1"))
-        self.assertEqual(Polynomial.parse("0").minus(Polynomial.parse("0")), Polynomial.parse("0"))
-        self.assertEqual(Polynomial.parse("2x-3").minus(Polynomial.parse("3x+5")), Polynomial.parse("-x-8"))
-        self.assertEqual(Polynomial.parse("-2x-3").minus(Polynomial.parse("3x+5-x^2")), Polynomial.parse("x^2-5x-8"))
+        self.assertEqual(parse_to_polynomial("2*x+1").minus(parse_to_polynomial("0")), parse_to_polynomial("2*x+1"))
+        self.assertEqual(parse_to_polynomial("0").minus(parse_to_polynomial("2*x+1")), Polynomial({1: -2, 0: -1}))
+        self.assertEqual(parse_to_polynomial("0").minus(parse_to_polynomial("0")), Polynomial({}))
+        self.assertEqual(parse_to_polynomial("2*x-3").minus(parse_to_polynomial("3*x+5")), Polynomial({1: -1, 0: -8}))
+        self.assertEqual(parse_to_polynomial("2*x-3").minus(parse_to_polynomial("3*x+5-x^2")),
+                         parse_to_polynomial("x^2-x-8"))
 
     def test_multiply(self):
-        self.assertEqual(Polynomial.parse("2").multiply(Polynomial.parse("3")), Polynomial.parse("6"))
-        self.assertEqual(Polynomial.parse("-2").multiply(Polynomial.parse("3")), Polynomial.parse("-6"))
-        self.assertEqual(Polynomial.parse("2").multiply(Polynomial.parse("-3")), Polynomial.parse("-6"))
-        self.assertEqual(Polynomial.parse("-2").multiply(Polynomial.parse("-3")), Polynomial.parse("6"))
-        self.assertEqual(Polynomial.parse("2").multiply(Polynomial.parse("x")), Polynomial.parse("2x"))
-        self.assertEqual(Polynomial.parse("-2").multiply(Polynomial.parse("x")), Polynomial.parse("-2x"))
-        self.assertEqual(Polynomial.parse("2").multiply(Polynomial.parse("-x")), Polynomial.parse("-2x"))
-        self.assertEqual(Polynomial.parse("-2").multiply(Polynomial.parse("-x")), Polynomial.parse("2x"))
-        self.assertEqual(Polynomial.parse("x").multiply(Polynomial.parse("x+1")), Polynomial.parse("x^2+x"))
-        self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("x+2")), Polynomial.parse("x^2+3x+2"))
-        self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("x-1")), Polynomial.parse("x^2-1"))
-        self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("-x-1")), Polynomial.parse("-x^2-1-2x"))
-        self.assertEqual(Polynomial.parse("0").multiply(Polynomial.parse("-x-1")), Polynomial.parse("0"))
-        self.assertEqual(Polynomial.parse("x+1").multiply(Polynomial.parse("0")), Polynomial.parse("0"))
+        self.assertEqual(parse_to_polynomial("2").multiply(parse_to_polynomial("3")), parse_to_polynomial("6"))
+        self.assertEqual(parse_to_polynomial("2").multiply(parse_to_polynomial("x")), parse_to_polynomial("2*x"))
+        self.assertEqual(parse_to_polynomial("x").multiply(parse_to_polynomial("x+1")), parse_to_polynomial("x^2+x"))
+        self.assertEqual(parse_to_polynomial("x+1").multiply(parse_to_polynomial("x+2")),
+                         parse_to_polynomial("x^2+3*x+2"))
+        self.assertEqual(parse_to_polynomial("x+1").multiply(parse_to_polynomial("x-1")), parse_to_polynomial("x^2-1"))
+        self.assertEqual(parse_to_polynomial("x+1").multiply(parse_to_polynomial("0")), parse_to_polynomial("0"))
 
     def test_diff(self):
-        self.assertEqual(Polynomial.parse("10").derivative(), Polynomial.parse("0"))
-        self.assertEqual(Polynomial.parse("x+1").derivative(), Polynomial.parse("1"))
-        self.assertEqual(Polynomial.parse("2x^2+3x+1").derivative(), Polynomial.parse("4x+3"))
+        self.assertEqual(parse_to_polynomial("10").derivative(), parse_to_polynomial("0"))
+        self.assertEqual(parse_to_polynomial("x+1").derivative(), parse_to_polynomial("1"))
+        self.assertEqual(parse_to_polynomial("2*x^2+3*x+1").derivative(), parse_to_polynomial("4*x+3"))
 
     def test_eval(self):
-        self.assertEqual(Polynomial.parse("0").eval(10), 0)
-        self.assertEqual(Polynomial.parse("x").eval(10), 10)
-        self.assertEqual(Polynomial.parse("2x+10").eval(10), 30)
-        self.assertEqual(Polynomial.parse("2.5x+10").eval(10), 35)
-        self.assertEqual(Polynomial.parse("x^2+2x+1").eval(3), 16)
-        self.assertEqual(Polynomial.parse("3x^4+8x^3-6x^2-24x").eval(float('inf')), float('inf'))
-        self.assertEqual(Polynomial.parse("3x^4+8x^3-6x^2-24x").eval(float('-inf')), float('inf'))
+        self.assertEqual(parse_to_polynomial("0").eval(10), 0)
+        self.assertEqual(parse_to_polynomial("x").eval(10), 10)
+        self.assertEqual(parse_to_polynomial("2*x+10").eval(10), 30)
+        self.assertEqual(parse_to_polynomial("2.5*x+10").eval(10), 35)
+        self.assertEqual(parse_to_polynomial("x^2+2*x+1").eval(3), 16)
+        self.assertEqual(parse_to_polynomial("3*x^4+8*x^3-6*x^2-24*x").eval(float('inf')), float('inf'))
+        self.assertEqual(parse_to_polynomial("3*x^4+8*x^3-6*x^2-24*x").eval(float('-inf')), float('inf'))
 
     def test_lim_at_inf(self):
-        self.assertEqual(Polynomial.parse("3x^4+8x^3-6x^2-24x").get_lim_at_inf(), float('inf'))
-        self.assertEqual(Polynomial.parse("-3x^4+8x^3-6x^2-24x").get_lim_at_inf(), float('-inf'))
+        self.assertEqual(parse_to_polynomial("3*x^4+8*x^3-6*x^2-24*x").get_lim_at_inf(), float('inf'))
+        self.assertEqual(parse_to_polynomial("-3*x^4+8*x^3-6*x^2-24*x").get_lim_at_inf(), float('-inf'))
 
-        self.assertEqual(Polynomial.parse("3x^3-6x^2-24x").get_lim_at_inf(), float('inf'))
-        self.assertEqual(Polynomial.parse("-3x^3-6x^2-24x").get_lim_at_inf(), float('-inf'))
+        self.assertEqual(parse_to_polynomial("3*x^3-6*x^2-24*x").get_lim_at_inf(), float('inf'))
+        self.assertEqual(parse_to_polynomial("-3*x^3-6*x^2-24*x").get_lim_at_inf(), float('-inf'))
 
     def test_lim_at_minus_inf(self):
-        self.assertEqual(Polynomial.parse("3x^4+8x^3-6x^2-24x").get_lim_at_minus_inf(), float('inf'))
-        self.assertEqual(Polynomial.parse("-3x^4+8x^3-6x^2-24x").get_lim_at_minus_inf(), float('-inf'))
+        self.assertEqual(parse_to_polynomial("3*x^4+8*x^3-6*x^2-24*x").get_lim_at_minus_inf(), float('inf'))
+        self.assertEqual(parse_to_polynomial("-3*x^4+8*x^3-6*x^2-24*x").get_lim_at_minus_inf(), float('-inf'))
 
-        self.assertEqual(Polynomial.parse("3x^3-6x^2-24x").get_lim_at_minus_inf(), float('-inf'))
-        self.assertEqual(Polynomial.parse("-3x^3-6x^2-24x").get_lim_at_minus_inf(), float('inf'))
+        self.assertEqual(parse_to_polynomial("3*x^3-6*x^2-24*x").get_lim_at_minus_inf(), float('-inf'))
+        self.assertEqual(parse_to_polynomial("-3*x^3-6*x^2-24*x").get_lim_at_minus_inf(), float('inf'))
 
     def test_get_coefficient(self):
-        self.assertEqual(Polynomial.parse("-x^2+1").get_coefficient(2), -1)
-        self.assertEqual(Polynomial.parse("-x^2+1").get_coefficient(1), 0)
-        self.assertEqual(Polynomial.parse("-x^2+1").get_coefficient(0), 1)
+        self.assertEqual(parse_to_polynomial("x^2+1").get_coefficient(2), 1)
+        self.assertEqual(parse_to_polynomial("x^2+1").get_coefficient(1), 0)
+        self.assertEqual(parse_to_polynomial("x^2-1").get_coefficient(0), -1)
+
+    def test_divide(self):
+        self.assertEqual(Polynomial({2: 2, 0: -3}).divide(Polynomial.from_constant(2)), Polynomial({2: 1, 0: -3/2}))
+        self.assertEqual(Polynomial({2: 2, 0: -3}).divide(Polynomial.from_constant(1)), Polynomial({2: 2, 0: -3}))
+
+    def test_power(self):
+        self.assertEqual(parse_to_polynomial("x+1").power(Polynomial.from_constant(0)), parse_to_polynomial("1"))
+        self.assertEqual(parse_to_polynomial("x+1").power(Polynomial.from_constant(1)), parse_to_polynomial("x+1"))
+        self.assertEqual(parse_to_polynomial("x+1").power(Polynomial.from_constant(2)),
+                         parse_to_polynomial("x^2+2*x+1"))
+        self.assertEqual(parse_to_polynomial("x+1").power(Polynomial.from_constant(3)),
+                         parse_to_polynomial("x^3+3*x^2+3*x+1"))
+        self.assertEqual(parse_to_polynomial("x+2").power(Polynomial.from_constant(3)),
+                         parse_to_polynomial("x^3+6*x^2+12*x+8"))
 
 
 if __name__ == '__main__':
