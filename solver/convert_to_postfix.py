@@ -68,8 +68,8 @@ def convert_infix_to_postfix(token_list: List[str]):
                 raise ExpressionSyntaxError("Cannot find corresponding opening bracket of: " + token)
         elif is_operator(token):
             while len(operator_stack) > 0 and is_operator(peek(operator_stack)) and\
-                    ((is_left_associative(token) and get_precedence(token) <= get_precedence(peek(operator_stack))
-                     or is_right_associative(token) and get_precedence(token) < get_precedence(peek(operator_stack)))):
+                    (get_precedence(token) < get_precedence(peek(operator_stack))
+                     or get_precedence(token) == get_precedence(peek(operator_stack)) and is_left_associative(token)):
                 result.append(operator_stack.pop())
             operator_stack.append(token)
         else:
