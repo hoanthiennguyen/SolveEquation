@@ -87,6 +87,9 @@ def convert_infix_to_postfix(token_list: List[str]):
 def convert_infix_to_postfix_testing_wrapper(expression):
     token_list = convert_to_token_list(expression)
     postfix_list = convert_infix_to_postfix(token_list)
+    if len(postfix_list) == 0:
+        return "0"
+    
     result = ""
     for item in postfix_list:
         result += " " + item
