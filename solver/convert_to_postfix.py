@@ -10,7 +10,7 @@ from util import peek, is_operator, is_opening_bracket, is_closing_bracket, is_o
 def get_precedence(operator):
     if operator == "+" or operator == "-":
         return 0
-    if operator == "neg":
+    if operator == "neg" or operator == "pos":
         return 1
     if operator == "*" or operator == "/":
         return 2
@@ -20,7 +20,7 @@ def get_precedence(operator):
 
 
 def is_right_associative(operator):
-    return operator in ["^", "neg"]
+    return operator in ["^", "neg", "pos"]
 
 
 def is_left_associative(operator):
@@ -113,3 +113,4 @@ class Test(unittest.TestCase):
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("(x+10)^2-3"), "x 10 + 2 ^ 3 -")
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("(2.5*x+10)^2-3"), "2.5 x * 10 + 2 ^ 3 -")
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("-x^2+1"), "x 2 ^ neg 1 +")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("+x^2+1"), "x 2 ^ pos 1 +")

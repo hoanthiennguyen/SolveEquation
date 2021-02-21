@@ -26,7 +26,7 @@ def check_is_a_number(token):
 
 
 def is_unary_operator(token):
-    return token in ["neg"]
+    return token in ["neg", "pos"]
 
 
 def is_binary_operator(token):

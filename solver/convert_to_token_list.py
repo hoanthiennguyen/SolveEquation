@@ -19,10 +19,11 @@ def convert_to_token_list(expression):
 
     # replace - sign with neg operator
     for i in range(len(result)):
-        if i == 0 and result[i] == "-" \
-                or i > 0 and is_opening_bracket(result[i-1]) and result[i] == "-" \
-                or i > 0 and is_operator(result[i-1]) and result[i] == "-":
-            result[i] = "neg"
+        if i == 0 or i > 0 and (is_opening_bracket(result[i-1]) or is_operator(result[i-1])):
+            if result[i] == "-":
+                result[i] = "neg"
+            elif result[i] == "+":
+                result[i] = "pos"
 
     return result
 
@@ -41,4 +42,5 @@ class Tests(unittest.TestCase):
         self.assertEqual(convert_to_token_list("1.2*x^2+10"), ["1.2", "*", "x", "^", "2", "+", "10"])
         self.assertEqual(convert_to_token_list("1.25*x^2+100"), ["1.25", "*", "x", "^", "2", "+", "100"])
         self.assertEqual(convert_to_token_list("-x+10"), ["neg", "x", "+", "10"])
+        self.assertEqual(convert_to_token_list("+x+10"), ["pos", "x", "+", "10"])
         self.assertEqual(convert_to_token_list("-x^2+1"), ["neg", "x", "^", "2", "+", "1"])

@@ -26,6 +26,8 @@ def evaluate_postfix(token_list: List[str]):
                 op1 = operand_stack.pop()
                 if token == "neg":
                     result = op1.neg()
+                elif token == "pos":
+                    result = op1
                 else:
                     raise ExpressionSyntaxError("Not supported operator: " + token)
             elif is_binary_operator(token) and len(operand_stack) >= 2:
@@ -249,7 +251,14 @@ class Tests(unittest.TestCase):
     def test_parse(self):
         self.assertEqual(parse_to_polynomial("1"), Polynomial({0: 1}))
         self.assertEqual(parse_to_polynomial("x"), Polynomial({1: 1}))
+        self.assertEqual(parse_to_polynomial("+x"), Polynomial({1: 1}))
         self.assertEqual(parse_to_polynomial("-x"), Polynomial({1: -1}))
+        self.assertEqual(parse_to_polynomial("--x"), Polynomial({1: 1}))
+        self.assertEqual(parse_to_polynomial("++x"), Polynomial({1: 1}))
+        self.assertEqual(parse_to_polynomial("-+x"), Polynomial({1: -1}))
+        self.assertEqual(parse_to_polynomial("+-x"), Polynomial({1: -1}))
+        self.assertEqual(parse_to_polynomial("(-x)^2"), Polynomial({2: 1}))
+        self.assertEqual(parse_to_polynomial("(+x)^2"), Polynomial({2: 1}))
         self.assertEqual(parse_to_polynomial("-x^2+3*2"), Polynomial({2: -1, 0: 6}))
         self.assertEqual(parse_to_polynomial("x-x"), Polynomial({}))
         self.assertEqual(parse_to_polynomial("20*x"), Polynomial({1: 20}))
