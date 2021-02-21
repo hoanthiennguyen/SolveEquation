@@ -242,9 +242,9 @@ class Tests(unittest.TestCase):
         for index in range(len(roots)):
             self.assertEqual(roots[index], expected_roots[index])
 
-        expression = "x^2-1=2*x+2"
+        expression = "x^2-1=-2*x+2"
         roots = parse_and_solve_and_round(expression, epsilon)
-        expected_roots = [-1, 3]
+        expected_roots = [-3, 1]
         for index in range(len(roots)):
             self.assertEqual(roots[index], expected_roots[index])
 

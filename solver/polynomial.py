@@ -3,9 +3,9 @@ import unittest
 from typing import List
 
 from error import EvaluationError
-from convert_to_postfix import is_operand, convert_infix_to_postfix
+from convert_to_postfix import convert_infix_to_postfix
 from convert_to_token_list import convert_to_token_list
-from util import check_is_a_number
+from util import check_is_a_number, is_unary_operator, is_operand
 
 
 def parse_operand(operand: str):
@@ -22,20 +22,27 @@ def evaluate_postfix(token_list: List[str]):
         if is_operand(token):
             operand_stack.append(parse_operand(token))
         else:
-            op2 = operand_stack.pop()
-            op1 = operand_stack.pop()
-            if token == "+":
-                result = op1.plus(op2)
-            elif token == "-":
-                result = op1.minus(op2)
-            elif token == "*":
-                result = op1.multiply(op2)
-            elif token == "/":
-                result = op1.divide(op2)
-            elif token == "^":
-                result = op1.power(op2)
+            if is_unary_operator(token):
+                op1 = operand_stack.pop()
+                if token == "neg":
+                    result = op1.neg()
+                else:
+                    raise EvaluationError("Not supported operator: " + token)
             else:
-                raise EvaluationError("Not supported operator: " + token)
+                op2 = operand_stack.pop()
+                op1 = operand_stack.pop()
+                if token == "+":
+                    result = op1.plus(op2)
+                elif token == "-":
+                    result = op1.minus(op2)
+                elif token == "*":
+                    result = op1.multiply(op2)
+                elif token == "/":
+                    result = op1.divide(op2)
+                elif token == "^":
+                    result = op1.power(op2)
+                else:
+                    raise EvaluationError("Not supported operator: " + token)
 
             operand_stack.append(result)
 
@@ -109,6 +116,12 @@ class Polynomial:
                 result[d1 + d2] = result.get(d1 + d2, 0) + self.dictionary.get(d1) * other.dictionary.get(d2)
 
         return Polynomial(result).simplify()
+
+    def neg(self):
+        result = copy.deepcopy(self)
+        for degree in result.dictionary:
+            result.dictionary[degree] = -(result.dictionary[degree])
+        return result
 
     @staticmethod
     def from_constant(number):
@@ -232,6 +245,8 @@ class Tests(unittest.TestCase):
     def test_parse(self):
         self.assertEqual(parse_to_polynomial("1"), Polynomial({0: 1}))
         self.assertEqual(parse_to_polynomial("x"), Polynomial({1: 1}))
+        self.assertEqual(parse_to_polynomial("-x"), Polynomial({1: -1}))
+        self.assertEqual(parse_to_polynomial("-x^2+3*2"), Polynomial({2: -1, 0: 6}))
         self.assertEqual(parse_to_polynomial("x-x"), Polynomial({}))
         self.assertEqual(parse_to_polynomial("20*x"), Polynomial({1: 20}))
         self.assertEqual(parse_to_polynomial("3*20*x"), Polynomial({1: 60}))
@@ -268,6 +283,15 @@ class Tests(unittest.TestCase):
 
         expression = "(x+1)^3"
         self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("x^3+3*x^2+3*x+1"))
+
+        expression = "(-x+1)^2"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("x^2-2*x+1"))
+
+        expression = "-(x+1)*2+4"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("2-2*x"))
+
+        expression = "(x+2*(x+1))^2+1"
+        self.assertEqual(parse_to_polynomial(expression), parse_to_polynomial("9*x^2+12*x+5"))
 
     def test_get_full_coefficient(self):
         self.assertEqual(parse_to_polynomial("x^2-1").get_full_coefficient(), [1, 0, -1])
@@ -316,17 +340,17 @@ class Tests(unittest.TestCase):
 
     def test_lim_at_inf(self):
         self.assertEqual(parse_to_polynomial("3*x^4+8*x^3-6*x^2-24*x").get_lim_at_inf(), float('inf'))
-        self.assertEqual(Polynomial({4: -3, 2: 1}).get_lim_at_inf(), float('-inf'))
+        self.assertEqual(parse_to_polynomial("-3*x^4+8*x^3-6*x^2-24*x").get_lim_at_inf(), float('-inf'))
 
         self.assertEqual(parse_to_polynomial("3*x^3-6*x^2-24*x").get_lim_at_inf(), float('inf'))
-        self.assertEqual(Polynomial({3: -3, 2: 1}).get_lim_at_inf(), float('-inf'))
+        self.assertEqual(parse_to_polynomial("-3*x^3-6*x^2-24*x").get_lim_at_inf(), float('-inf'))
 
     def test_lim_at_minus_inf(self):
         self.assertEqual(parse_to_polynomial("3*x^4+8*x^3-6*x^2-24*x").get_lim_at_minus_inf(), float('inf'))
-        self.assertEqual(Polynomial({4: -3, 2: 1}).get_lim_at_minus_inf(), float('-inf'))
+        self.assertEqual(parse_to_polynomial("-3*x^4+8*x^3-6*x^2-24*x").get_lim_at_minus_inf(), float('-inf'))
 
         self.assertEqual(parse_to_polynomial("3*x^3-6*x^2-24*x").get_lim_at_minus_inf(), float('-inf'))
-        self.assertEqual(Polynomial({3: -3, 2: 1}).get_lim_at_minus_inf(), float('inf'))
+        self.assertEqual(parse_to_polynomial("-3*x^3-6*x^2-24*x").get_lim_at_minus_inf(), float('inf'))
 
     def test_get_coefficient(self):
         self.assertEqual(parse_to_polynomial("x^2+1").get_coefficient(2), 1)
@@ -338,13 +362,14 @@ class Tests(unittest.TestCase):
         self.assertEqual(Polynomial({2: 2, 0: -3}).divide(Polynomial.from_constant(1)), Polynomial({2: 2, 0: -3}))
 
     def test_power(self):
-        self.assertEqual(Polynomial({1: 1, 0: 1}).power(Polynomial.from_constant(0)), Polynomial({0: 1}))
-        self.assertEqual(Polynomial({1: 1, 0: 1}).power(Polynomial.from_constant(1)), Polynomial({1: 1, 0: 1}))
-        self.assertEqual(Polynomial({1: 1, 0: 1}).power(Polynomial.from_constant(2)), Polynomial({2: 1, 1: 2, 0: 1}))
-        self.assertEqual(Polynomial({1: 1, 0: 1}).power(Polynomial.from_constant(3)),
-                         Polynomial({3: 1, 2: 3, 1: 3, 0: 1}))
-        self.assertEqual(Polynomial({1: 1, 0: 2}).power(Polynomial.from_constant(3)),
-                         Polynomial({3: 1, 2: 6, 1: 12, 0: 8}))
+        self.assertEqual(parse_to_polynomial("x+1").power(Polynomial.from_constant(0)), parse_to_polynomial("1"))
+        self.assertEqual(parse_to_polynomial("x+1").power(Polynomial.from_constant(1)), parse_to_polynomial("x+1"))
+        self.assertEqual(parse_to_polynomial("x+1").power(Polynomial.from_constant(2)),
+                         parse_to_polynomial("x^2+2*x+1"))
+        self.assertEqual(parse_to_polynomial("x+1").power(Polynomial.from_constant(3)),
+                         parse_to_polynomial("x^3+3*x^2+3*x+1"))
+        self.assertEqual(parse_to_polynomial("x+2").power(Polynomial.from_constant(3)),
+                         parse_to_polynomial("x^3+6*x^2+12*x+8"))
 
 
 if __name__ == '__main__':

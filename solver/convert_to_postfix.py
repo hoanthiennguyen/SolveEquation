@@ -3,42 +3,28 @@ import unittest
 from typing import List
 
 from convert_to_token_list import convert_to_token_list
-from util import peek, check_is_a_number
+from error import EvaluationError
+from util import peek, is_operator, is_opening_bracket, is_closing_bracket, is_operand
 
 
 def get_precedence(operator):
-    precedence = {
-        "+": 1,
-        "-": 1,
-        "*": 2,
-        "/": 2,
-        "^": 3
-    }
-    return precedence.get(operator, 0)
+    if operator == "+" or operator == "-":
+        return 0
+    if operator == "neg":
+        return 1
+    if operator == "*" or operator == "/":
+        return 2
+    if operator == "^":
+        return 3
+    raise EvaluationError("Not supported operator")
 
 
 def is_right_associative(operator):
-    return operator in ["^"]
+    return operator in ["^", "neg"]
 
 
 def is_left_associative(operator):
     return not is_right_associative(operator)
-
-
-def is_operand(token: str):
-    return check_is_a_number(token) or token.isalpha()
-
-
-def is_opening_bracket(token: str):
-    return token in ["(", "[", "{"]
-
-
-def is_closing_bracket(token: str):
-    return token in [")", "]", "}"]
-
-
-def is_bracket(token: str):
-    return token in ["(", "[", "{", "}", "]", ")"]
 
 
 def get_corresponding_closing_bracket(opening_bracket):
@@ -46,8 +32,10 @@ def get_corresponding_closing_bracket(opening_bracket):
         return ")"
     elif opening_bracket == "[":
         return "]"
-    else:
+    elif opening_bracket == "{":
         return "}"
+    else:
+        raise EvaluationError("Not supported opening bracket: " + opening_bracket)
 
 
 def get_corresponding_opening_bracket(closing_bracket):
@@ -55,12 +43,10 @@ def get_corresponding_opening_bracket(closing_bracket):
         return "("
     elif closing_bracket == "]":
         return "["
-    else:
+    elif closing_bracket == "}":
         return "{"
-
-
-def is_operator(token):
-    return token in ["+", "-", "*", "/", "^"]
+    else:
+        raise EvaluationError("Not supported closing bracket: " + closing_bracket)
 
 
 def convert_infix_to_postfix(token_list: List[str]):
@@ -79,9 +65,9 @@ def convert_infix_to_postfix(token_list: List[str]):
             if len(operator_stack) > 0:
                 operator_stack.pop()
         else:
-            while len(operator_stack) > 0 and \
-                    (is_left_associative(token) and get_precedence(token) <= get_precedence(peek(operator_stack))
-                     or is_right_associative(token) and get_precedence(token) < get_precedence(peek(operator_stack))):
+            while len(operator_stack) > 0 and is_operator(peek(operator_stack)) and\
+                    ((is_left_associative(token) and get_precedence(token) <= get_precedence(peek(operator_stack))
+                     or is_right_associative(token) and get_precedence(token) < get_precedence(peek(operator_stack)))):
                 result.append(operator_stack.pop())
             operator_stack.append(token)
 
@@ -116,3 +102,4 @@ class Test(unittest.TestCase):
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("(x+1)*(x+2)-10"), "x 1 + x 2 + * 10 -")
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("(x+10)^2-3"), "x 10 + 2 ^ 3 -")
         self.assertEqual(convert_infix_to_postfix_testing_wrapper("(2.5*x+10)^2-3"), "2.5 x * 10 + 2 ^ 3 -")
+        self.assertEqual(convert_infix_to_postfix_testing_wrapper("-x^2+1"), "x 2 ^ neg 1 +")
