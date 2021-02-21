@@ -11,7 +11,7 @@ def get_precedence(operator):
     if operator == "+" or operator == "-":
         return 0
     if operator == "neg" or operator == "pos":
-        return 1
+        return 3
     if operator == "*" or operator == "/":
         return 2
     if operator == "^":
@@ -79,7 +79,7 @@ def convert_infix_to_postfix(token_list: List[str]):
         if is_operator(peek(operator_stack)):
             result.append(operator_stack.pop())
         else:
-            raise ExpressionSyntaxError("Incomplete expression")
+            raise ExpressionSyntaxError("Invalid expression")
 
     return result
 

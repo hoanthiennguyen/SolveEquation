@@ -46,13 +46,13 @@ def evaluate_postfix(token_list: List[str]):
                 else:
                     raise ExpressionSyntaxError("Not supported operator: " + token)
             else:
-                raise ExpressionSyntaxError("Incomplete expression")
+                raise ExpressionSyntaxError("Invalid expression")
 
             operand_stack.append(result)
     if len(operand_stack) == 1:
         return operand_stack.pop()
     else:
-        raise ExpressionSyntaxError("Incomplete expression")
+        raise ExpressionSyntaxError("Invalid expression")
 
 
 def parse_to_polynomial(expression):
@@ -258,9 +258,14 @@ class Tests(unittest.TestCase):
         self.assertEqual(parse_to_polynomial("-+x"), Polynomial({1: -1}))
         self.assertEqual(parse_to_polynomial("+-x"), Polynomial({1: -1}))
         self.assertEqual(parse_to_polynomial("(-x)^2"), Polynomial({2: 1}))
+        self.assertEqual(parse_to_polynomial("-x^2"), Polynomial({2: -1}))
         self.assertEqual(parse_to_polynomial("(+x)^2"), Polynomial({2: 1}))
         self.assertEqual(parse_to_polynomial("-x^2+3*2"), Polynomial({2: -1, 0: 6}))
         self.assertEqual(parse_to_polynomial("x-x"), Polynomial({}))
+        self.assertEqual(parse_to_polynomial("x*x"), Polynomial({2: 1}))
+        self.assertEqual(parse_to_polynomial("x*-x"), Polynomial({2: -1}))
+        self.assertEqual(parse_to_polynomial("-x*x"), Polynomial({2: -1}))
+        self.assertEqual(parse_to_polynomial("-x*-x"), Polynomial({2: 1}))
         self.assertEqual(parse_to_polynomial("20*x"), Polynomial({1: 20}))
         self.assertEqual(parse_to_polynomial("3*20*x"), Polynomial({1: 60}))
         self.assertEqual(parse_to_polynomial("1/3*x^3-x"), Polynomial({3: 1 / 3, 1: -1}))
@@ -269,6 +274,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(parse_to_polynomial("x+3*x^2+1"), Polynomial({2: 3, 1: 1, 0: 1}))
         self.assertEqual(parse_to_polynomial("3*x^2-x+1"), Polynomial({2: 3, 1: -1, 0: 1}))
         self.assertEqual(parse_to_polynomial("3*x^2-x+1+9*x-3"), Polynomial({2: 3, 1: 8, 0: -2}))
+        self.assertEqual(parse_to_polynomial("-3*x^2-x+1+9*x-3"), Polynomial({2: -3, 1: 8, 0: -2}))
 
         expression = "3+4*5"
         self.assertEqual(parse_to_polynomial(expression), Polynomial.from_constant(23))
